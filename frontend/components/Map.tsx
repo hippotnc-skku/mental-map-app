@@ -103,6 +103,7 @@ export default function Map() {
     return 8;                             // 500km 초과: 가장 작게
   }
 
+  // 1. 최초 1회 지도 생성
   useEffect(() => {
     const loadKakaoMap = () => {
       if (window.kakao && window.kakao.maps) {
@@ -116,7 +117,6 @@ export default function Map() {
 
       script.onload = () => {
         window.kakao.maps.load(() => {
-          console.log('Kakao map loaded')
           initMap()
         })
       }
@@ -144,9 +144,9 @@ export default function Map() {
 
           const options = {
             center: new window.kakao.maps.LatLng(lat, lng),
-            level: 7, // 초기 줌 레벨을 7로 설정 (10km 반경)
+            level: 7,
             minLevel: 1,
-            maxLevel: 13  // 최대 줌 레벨을 13으로 설정 (1000km 반경)
+            maxLevel: 13
           }
 
           const kakaoMap = new window.kakao.maps.Map(mapContainerRef.current, options)
@@ -159,30 +159,28 @@ export default function Map() {
             title: '내 위치',
           })
 
-          // 지도 확대/축소 이벤트 리스너 추가
+          // 지도 이벤트 리스너: 반경만 변경
           window.kakao.maps.event.addListener(kakaoMap, 'zoom_changed', () => {
             const level = kakaoMap.getLevel()
             const newRadius = getRadiusByLevel(level)
             setCurrentRadius(newRadius)
-            
-            // 항상 userLocation 기준으로 센터 정보 조회
-            if (userLocation) {
-              fetchCenters(userLocation.lat, userLocation.lng, newRadius, kakaoMap)
-            }
           })
-
-          // 초기 센터 정보 조회 (userLocation 기준)
-          fetchCenters(lat, lng, currentRadius, kakaoMap)
         },
         (error) => {
-          console.error('Error getting location:', error)
           setError('위치 정보를 가져오는데 실패했습니다.')
         }
       )
     }
 
     loadKakaoMap()
-  }, [userLocation])
+  }, [])
+
+  // 2. userLocation, currentRadius가 바뀔 때만 fetchCenters 호출
+  useEffect(() => {
+    if (userLocation && map) {
+      fetchCenters(userLocation.lat, userLocation.lng, currentRadius, map)
+    }
+  }, [userLocation, currentRadius])
 
   const fetchCenters = async (lat: number, lng: number, radius: number, kakaoMap: any) => {
     try {
@@ -271,10 +269,8 @@ export default function Map() {
 
     const { marker, infowindow } = centerData
 
-    // 지도 중심을 해당 센터로 이동
+    // 지도 중심만 이동 (setLevel 호출 제거)
     map.setCenter(marker.getPosition())
-    // 지도 레벨을 적절하게 조정
-    map.setLevel(4)
 
     // 다른 인포윈도우가 열려있다면 닫기
     if (currentInfowindowRef.current) {
