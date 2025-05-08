@@ -19,8 +19,8 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4">
-      <h1 className="text-4xl font-bold mb-8">Mental Map</h1>
-      <p className="text-xl mb-8">정신건강 시설 지도 서비스</p>
+      <h1 className="text-4xl font-bold mb-8">Mental Care Center Map</h1>
+      <p className="text-xl mb-8">심리상담센타 찾기</p>
       <div className="w-full max-w-4xl">
         {isClient && <Map />}
       </div>

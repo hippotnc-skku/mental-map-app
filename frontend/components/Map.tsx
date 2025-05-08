@@ -53,16 +53,19 @@ export default function Map() {
   const getRadiusByLevel = (level: number): number => {
     // 지도 레벨별 대략적인 반경 (미터 단위)
     const radiusMap: { [key: number]: number } = {
-      1: 100,     // 100m
-      2: 250,     // 250m
-      3: 500,     // 500m
-      4: 1000,    // 1km
-      5: 2500,    // 2.5km
-      6: 5000,    // 5km
-      7: 10000,   // 10km
-      8: 25000,   // 25km
-      9: 50000,   // 50km
-      10: 100000, // 100km
+      1: 100,      // 100m
+      2: 250,      // 250m
+      3: 500,      // 500m
+      4: 1000,     // 1km
+      5: 2500,     // 2.5km
+      6: 5000,     // 5km
+      7: 10000,    // 10km
+      8: 25000,    // 25km
+      9: 50000,    // 50km
+      10: 100000,  // 100km
+      11: 250000,  // 250km
+      12: 500000,  // 500km (서울-제주도 거리 포함)
+      13: 1000000  // 1000km
     }
     return radiusMap[level] || 2000
   }
@@ -71,6 +74,33 @@ export default function Map() {
   const removeMarkers = () => {
     markersRef.current.forEach(marker => marker.setMap(null))
     markersRef.current = []
+  }
+
+  // 두 지점 간의 거리를 계산하는 함수 (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371e3; // 지구의 반지름 (미터)
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // 미터 단위 거리
+  }
+
+  // 검색 반경에 따른 마커 크기 계산 함수
+  const getMarkerSize = (radius: number): number => {
+    if (radius <= 1000) return 64;        // 1km 이하: 기본 크기
+    if (radius <= 5000) return 48;        // 5km 이하: 약간 작게
+    if (radius <= 10000) return 36;       // 10km 이하: 더 작게
+    if (radius <= 50000) return 24;       // 50km 이하: 작게
+    if (radius <= 100000) return 18;      // 100km 이하: 매우 작게
+    if (radius <= 500000) return 12;      // 500km 이하: 아주 작게
+    return 8;                             // 500km 초과: 가장 작게
   }
 
   useEffect(() => {
@@ -114,7 +144,9 @@ export default function Map() {
 
           const options = {
             center: new window.kakao.maps.LatLng(lat, lng),
-            level: 4,
+            level: 7, // 초기 줌 레벨을 7로 설정 (10km 반경)
+            minLevel: 1,
+            maxLevel: 13  // 최대 줌 레벨을 13으로 설정 (1000km 반경)
           }
 
           const kakaoMap = new window.kakao.maps.Map(mapContainerRef.current, options)
@@ -163,7 +195,17 @@ export default function Map() {
       const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/centers`, {
         params: { lat, lng, radius },
       })
-      setCenters(res.data)
+      
+      // 각 센터의 거리 계산
+      const centersWithDistance = res.data.map((center: Center) => ({
+        ...center,
+        distance_m: calculateDistance(lat, lng, center.lat, center.lng)
+      }));
+
+      // 거리순으로 정렬
+      centersWithDistance.sort((a: Center, b: Center) => a.distance_m - b.distance_m);
+      
+      setCenters(centersWithDistance)
 
       // 기존 마커와 인포윈도우 제거
       removeMarkers()
@@ -173,11 +215,11 @@ export default function Map() {
       markersMapRef.current = {}
 
       // 새로운 마커 추가
-      res.data.forEach((center: Center) => {
+      centersWithDistance.forEach((center: Center) => {
         const marker = new window.kakao.maps.Marker({
           map: kakaoMap,
           position: new window.kakao.maps.LatLng(center.lat, center.lng),
-          title: center.name,
+          title: center.name
         })
 
         const content = `
@@ -228,7 +270,7 @@ export default function Map() {
 
   // 센터 목록 클릭 핸들러
   const handleCenterClick = (center: Center) => {
-    if (!map) return
+    if (!map || !userLocation) return
 
     const centerData = markersMapRef.current[center.name]
     if (!centerData) return
@@ -237,13 +279,36 @@ export default function Map() {
 
     // 지도 중심을 해당 센터로 이동
     map.setCenter(marker.getPosition())
-    // 지도 레벨을 적절하게 조정 (선택사항)
+    // 지도 레벨을 적절하게 조정
     map.setLevel(4)
 
     // 다른 인포윈도우가 열려있다면 닫기
     if (currentInfowindowRef.current) {
       currentInfowindowRef.current.close()
     }
+
+    // 현재 위치 기준으로 거리 재계산
+    const distance = calculateDistance(
+      userLocation.lat,
+      userLocation.lng,
+      center.lat,
+      center.lng
+    )
+
+    // 인포윈도우 내용 업데이트
+    const content = `
+      <div style="padding:5px;min-width:200px">
+        <strong>${center.name}</strong><br/>
+        <a href="tel:${center.phone.replace(/-/g, '')}" style="color: #007bff; text-decoration: none;">
+          📞 ${center.phone}
+        </a><br/>
+        <a href="${center.website}" target="_blank" style="color: #007bff; text-decoration: none;">
+          🌐 홈페이지
+        </a><br/>
+        거리: ${formatDistance(distance)}
+      </div>
+    `
+    infowindow.setContent(content)
 
     // 인포윈도우 열기
     infowindow.open(map, marker)
