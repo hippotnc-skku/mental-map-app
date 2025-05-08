@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import os
 
 # .env.dev 파일 로드
-load_dotenv("env.dev")
+load_dotenv(".env.dev")
 
 class Settings(BaseSettings):
     # 데이터베이스 설정
