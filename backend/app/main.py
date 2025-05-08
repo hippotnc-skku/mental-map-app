@@ -54,7 +54,7 @@ async def get_centers(
             "description": c.description,
             "lat": c.lat,
             "lng": c.lng,
-            "distance_m": int(c.distance)
+            "distance_m": int(c.distance) if c.distance else None
         }
         for c in centers
     ]

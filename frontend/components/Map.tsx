@@ -165,19 +165,13 @@ export default function Map() {
             const newRadius = getRadiusByLevel(level)
             setCurrentRadius(newRadius)
             
-            // 현재 중심 좌표 가져오기
-            const center = kakaoMap.getCenter()
-            const centerLat = center.getLat()
-            const centerLng = center.getLng()
-
-            // 기존 마커 제거
-            removeMarkers()
-            
-            // 새로운 반경으로 센터 정보 조회
-            fetchCenters(centerLat, centerLng, newRadius, kakaoMap)
+            // 항상 userLocation 기준으로 센터 정보 조회
+            if (userLocation) {
+              fetchCenters(userLocation.lat, userLocation.lng, newRadius, kakaoMap)
+            }
           })
 
-          // 초기 센터 정보 조회
+          // 초기 센터 정보 조회 (userLocation 기준)
           fetchCenters(lat, lng, currentRadius, kakaoMap)
         },
         (error) => {
@@ -188,7 +182,7 @@ export default function Map() {
     }
 
     loadKakaoMap()
-  }, [])
+  }, [userLocation])
 
   const fetchCenters = async (lat: number, lng: number, radius: number, kakaoMap: any) => {
     try {
