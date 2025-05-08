@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     DB_USER: str = os.getenv("DB_USER", "smpapa")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "passw0rd")
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
-    DB_PORT: str = os.getenv("DB_PORT", "5433")
+    DB_PORT: str = os.getenv("DB_PORT", "5434")
     DB_NAME: str = os.getenv("DB_NAME", "mentalcenter")
 
     @property
