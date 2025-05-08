@@ -34,6 +34,7 @@ export default function Map() {
   const [centers, setCenters] = useState<Center[]>([])
   const [error, setError] = useState<string | null>(null)
   const [currentRadius, setCurrentRadius] = useState<number>(2000)
+  const [hoveredCenter, setHoveredCenter] = useState<string | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const markersRef = useRef<any[]>([])
   const infowindowsRef = useRef<any[]>([])
@@ -249,6 +250,35 @@ export default function Map() {
     currentInfowindowRef.current = infowindow
   }
 
+  // 센터 목록 마우스 오버 핸들러
+  const handleCenterMouseEnter = (center: Center) => {
+    if (!map) return
+
+    const centerData = markersMapRef.current[center.name]
+    if (!centerData) return
+
+    const { marker, infowindow } = centerData
+
+    // 다른 인포윈도우가 열려있다면 닫기
+    if (currentInfowindowRef.current) {
+      currentInfowindowRef.current.close()
+    }
+
+    // 인포윈도우 열기
+    infowindow.open(map, marker)
+    currentInfowindowRef.current = infowindow
+    setHoveredCenter(center.name)
+  }
+
+  // 센터 목록 마우스 아웃 핸들러
+  const handleCenterMouseLeave = () => {
+    if (currentInfowindowRef.current) {
+      currentInfowindowRef.current.close()
+      currentInfowindowRef.current = null
+    }
+    setHoveredCenter(null)
+  }
+
   if (error) {
     return (
       <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center">
@@ -279,8 +309,14 @@ export default function Map() {
           {centers.map((center, i) => (
             <li 
               key={i} 
-              className="mb-2 p-2 hover:bg-gray-100 cursor-pointer rounded"
+              className={`mb-2 p-2 cursor-pointer rounded transition-all duration-200 ${
+                hoveredCenter === center.name 
+                  ? 'bg-blue-100 border-l-4 border-blue-500 shadow-md' 
+                  : 'hover:bg-gray-100'
+              }`}
               onClick={() => handleCenterClick(center)}
+              onMouseEnter={() => handleCenterMouseEnter(center)}
+              onMouseLeave={handleCenterMouseLeave}
             >
               📍 {center.name} ({formatDistance(center.distance_m)})
             </li>
