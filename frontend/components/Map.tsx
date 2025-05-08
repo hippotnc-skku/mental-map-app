@@ -196,10 +196,10 @@ export default function Map() {
         params: { lat, lng, radius },
       })
       
-      // 각 센터의 거리 계산
+      // 각 센터의 거리 계산 (항상 내 위치 기준)
       const centersWithDistance = res.data.map((center: Center) => ({
         ...center,
-        distance_m: calculateDistance(lat, lng, center.lat, center.lng)
+        distance_m: userLocation ? calculateDistance(userLocation.lat, userLocation.lng, center.lat, center.lng) : 0
       }));
 
       // 거리순으로 정렬
