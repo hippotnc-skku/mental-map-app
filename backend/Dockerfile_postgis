@@ -1,0 +1,12 @@
+# PostGIS가 포함된 공식 PostgreSQL 이미지 사용
+FROM postgis/postgis:16-3.4
+
+# 필요시 환경 변수 설정 (예: 사용자, DB 이름 등)
+ENV POSTGRES_USER=smpapa
+ENV POSTGRES_PASSWORD=passw0rd
+ENV POSTGRES_DB=mentalcenter
+
+# 초기화 스크립트가 필요하면 여기에 추가 가능
+# 예: COPY ./init.sql /docker-entrypoint-initdb.d/
+
+EXPOSE 5433
