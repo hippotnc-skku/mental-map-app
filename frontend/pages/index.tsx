@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
+import CenterList from '../components/CenterList'
 
-const Map = dynamic(() => import('../components/Map'), {
+const MapComponent = dynamic(() => import('../components/Map'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center">
@@ -12,18 +13,33 @@ const Map = dynamic(() => import('../components/Map'), {
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false)
+  const [userLocation, setUserLocation] = useState(null)
+  const [centers, setCenters] = useState([])
 
   useEffect(() => {
     setIsClient(true)
   }, [])
 
+  const handleCenterClick = (center) => {
+    // Implement the logic to handle center click
+  }
+
   return (
-    <main className="flex min-h-screen flex-col items-center p-4">
-      <h1 className="text-4xl font-bold mb-8">Mental Care Center Map</h1>
-      <p className="text-xl mb-8">심리상담센타 찾기</p>
-      <div className="w-full max-w-4xl">
-        {isClient && <Map />}
+    <div className="flex flex-col h-screen">
+      <div className="flex-1 relative">
+        <MapComponent
+          userLocation={userLocation}
+          centers={centers}
+          onCenterClick={handleCenterClick}
+        />
       </div>
-    </main>
+      <div className="h-2/5 overflow-y-auto">
+        <CenterList
+          centers={centers}
+          onCenterClick={handleCenterClick}
+          userLocation={userLocation}
+        />
+      </div>
+    </div>
   )
 } 
