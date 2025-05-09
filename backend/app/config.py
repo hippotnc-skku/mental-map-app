@@ -1,9 +1,17 @@
+import os
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
-import os
+
+# 현재 파일의 디렉토리 경로
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# backend 디렉토리 경로
+backend_dir = os.path.dirname(current_dir)
+# .env.dev 파일 경로
+env_path = os.path.join(backend_dir, '.env.dev')
 
 # .env.dev 파일 로드
-load_dotenv(".env.dev")
+if not load_dotenv(env_path):
+    raise Exception(f"Failed to load .env.dev file from {env_path}")
 
 class Settings(BaseSettings):
     # 데이터베이스 설정
@@ -12,6 +20,11 @@ class Settings(BaseSettings):
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: str = os.getenv("DB_PORT", "5434")
     DB_NAME: str = os.getenv("DB_NAME", "mentalcenter")
+    
+    # 카카오 API 설정
+    KAKAO_API_KEY: str = os.getenv("KAKAO_API_KEY")
+    if not KAKAO_API_KEY:
+        raise ValueError("KAKAO_API_KEY is not set in .env.dev file")
 
     @property
     def DATABASE_URL(self) -> str:
@@ -21,7 +34,9 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "Mental Map API"
     
-    # 카카오 API 설정
-    KAKAO_API_KEY: str = os.getenv("KAKAO_API_KEY", "")
-
 settings = Settings() 
+
+if __name__ == "__main__":
+    print(f"settings : {settings}")
+    print(f"KAKAO_API_KEY: {settings.KAKAO_API_KEY}")
+

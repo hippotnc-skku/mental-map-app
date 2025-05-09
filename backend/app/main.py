@@ -37,10 +37,11 @@ async def get_centers(
     db: AsyncSession = Depends(get_db)
 ):
     query = text("""
-        SELECT id, name, phone, website, description, lat, lng,
+        SELECT id, name, phone, website, description, lat, lng, region, description,
             ST_DistanceSphere(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) AS distance
         FROM psych_centers
         WHERE ST_DistanceSphere(geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)) <= :radius
+            AND isopen = true
         ORDER BY distance ASC;
     """)
     result = await db.execute(query, {"lat": lat, "lng": lng, "radius": radius})
@@ -54,6 +55,8 @@ async def get_centers(
             "description": c.description,
             "lat": c.lat,
             "lng": c.lng,
+            "region": c.region,
+            "description": c.description,
             "distance_m": int(c.distance) if c.distance else None
         }
         for c in centers

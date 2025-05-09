@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text
+from sqlalchemy import Boolean, Column, Integer, String, Float, Text
 from geoalchemy2 import Geometry
 from database import Base
 
@@ -13,4 +13,6 @@ class PsychCenter(Base):
     lat = Column(Float)
     lng = Column(Float)
     description = Column(Text)
+    isopen = Column(Boolean, default=True)
+    region = Column(String(20))
     geom = Column(Geometry(geometry_type='POINT', srid=4326))
