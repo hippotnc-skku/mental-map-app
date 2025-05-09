@@ -2,7 +2,19 @@ import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
 import CenterList from '../components/CenterList'
 
-const MapComponent = dynamic(() => import('../components/Map'), {
+interface Center {
+  name: string
+  lat: number
+  lng: number
+  phone: string
+  website: string
+}
+
+const MapComponent = dynamic<{
+  userLocation: { lat: number; lng: number } | null
+  centers: Center[]
+  onCenterClick: (center: Center) => void
+}>(() => import('../components/Map'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-[500px] bg-gray-100 flex items-center justify-center">
