@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    environment {
+        PYTHON_VERSION = '3.11'
+        VENV_NAME = 'venv'
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git credentialsId: 'github-token', url: 'https://github.com/hippotnc-skku/mental-map-app.git'
+            }
+        }
+
+        stage('Setup Environment') {
+            steps {
+                withCredentials([string(credentialsId: 'mental-map-backend-env-vars', variable: 'ENV_VARS_JSON')]) {
+                    dir('backend') {
+                        sh '''
+                        echo "${ENV_VARS_JSON}" > env.json
+                        cat env.json | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' > .env.dev
+                        rm env.json
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Setup Python Environment') {
+            steps {
+                dir('backend') {
+                    sh '''
+                    python${PYTHON_VERSION} -m venv ${VENV_NAME}
+                    . ${VENV_NAME}/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                    '''
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                dir('backend') {
+                    sh '''
+                    . ${VENV_NAME}/bin/activate
+                    python -m pytest
+                    '''
+                }
+            }
+        }
+
+        stage('Run with PM2') {
+            steps {
+                dir('backend') {
+                    sh '''
+                    pm2 delete mental-map-backend || true
+                    pm2 start "python app/main.py" --name mental-map-backend
+                    pm2 save
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            dir('backend') {
+                sh 'rm -f .env.dev'
+            }
+            cleanWs()
+        }
+    }
+} 
