@@ -25,7 +25,7 @@ pipeline {
                             dir('frontend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                cat env.json | jq -r "to_entries | .[] | \"\\(.key)=\\(.value)\"" > .env.local
+                                jq -r "to_entries | .[] | .key + \"=\" + .value" env.json > .env.local
                                 rm env.json
                                 '''
                             }
@@ -74,7 +74,7 @@ pipeline {
                             dir('backend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                cat env.json | jq -r "to_entries | .[] | \"\\(.key)=\\(.value)\"" > .env.dev
+                                jq -r "to_entries | .[] | .key + \"=\" + .value" env.json > .env.dev
                                 rm env.json
                                 '''
                             }
