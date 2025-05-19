@@ -25,7 +25,7 @@ pipeline {
                             dir('frontend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                jq -r "to_entries | .[] | .key + \"=\" + .value" env.json > .env.local
+                                python3 -c "import json; f=open('env.json'); data=json.load(f); f.close(); f=open('.env.local', 'w'); [f.write(f'{k}={v}\\n') for k,v in data.items()]; f.close()"
                                 rm env.json
                                 '''
                             }
@@ -74,7 +74,7 @@ pipeline {
                             dir('backend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                jq -r "to_entries | .[] | .key + \"=\" + .value" env.json > .env.dev
+                                python3 -c "import json; f=open('env.json'); data=json.load(f); f.close(); f=open('.env.dev', 'w'); [f.write(f'{k}={v}\\n') for k,v in data.items()]; f.close()"
                                 rm env.json
                                 '''
                             }
