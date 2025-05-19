@@ -19,7 +19,8 @@ pipeline {
                     dir('backend') {
                         sh '''
                         echo "${ENV_VARS_JSON}" > env.json
-                        cat env.json | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' > .env.dev
+                        cat env.json
+                        python3 -c "import json; f=open('env.json'); data=json.load(f); f.close(); f=open('.env.dev', 'w'); [f.write(f'{k}={v}\\n') for k,v in data.items()]; f.close()"
                         rm env.json
                         '''
                     }
