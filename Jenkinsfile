@@ -8,7 +8,9 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git credentialsId: 'github-token', url: 'https://github.com/hippotnc-skku/mental-map-app.git'
+                git branch: 'main',
+                    credentialsId: 'github-token',
+                    url: 'https://github.com/hippotnc-skku/mental-map-app.git'
             }
         }
 
