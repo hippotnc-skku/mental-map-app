@@ -11,7 +11,16 @@ RUN apt-get update && \
     python3-venv \
     curl \
     gnupg \
+    lsb-release \
+    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
+
+# Docker 설치
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y docker-ce docker-ce-cli containerd.io && \
+    rm -rf /var/lib/apt/lists/*
 
 # Node.js 설치
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
@@ -25,5 +34,8 @@ RUN npm install -g pm2
 # 작업 디렉토리 생성 및 권한 설정
 RUN mkdir -p /var/jenkins_home/workspace && \
     chown -R jenkins:jenkins /var/jenkins_home
+
+# Jenkins 사용자를 docker 그룹에 추가
+RUN usermod -aG docker jenkins
 
 USER jenkins 

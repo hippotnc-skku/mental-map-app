@@ -1,156 +1,143 @@
-# Jenkins 설정 및 사용 가이드
+# Jenkins 설정 가이드
 
-## 1. Jenkins 설치 및 실행
+## 개요
+이 문서는 Mental Map App의 Jenkins CI/CD 파이프라인 설정과 Docker 환경 구성에 대한 가이드입니다.
 
-### 1.1 사전 요구사항
+## 사전 요구사항
 - Docker
 - Docker Compose
+- Git
 
-### 1.2 설치 및 실행
+## Jenkins 컨테이너 설정
+
+### 1. Jenkins 이미지 빌드
+Jenkins 이미지는 다음 구성요소가 포함된 커스텀 이미지를 사용합니다:
+- Jenkins LTS
+- Docker CE
+- Node.js 18.x
+- Yarn
+- PM2
+- Python 3
+- 기타 필요한 도구들
+
+### 2. Docker Compose 설정
+```yaml
+version: '3.8'
+
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    container_name: jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    privileged: true
+    environment:
+      - TZ=Asia/Seoul
+    networks:
+      - jenkins_network
+```
+
+### 3. Jenkins 시작하기
 ```bash
-# Jenkins 컨테이너 실행
+# Jenkins 컨테이너 시작
 docker-compose up -d
 
-# 로그 확인
-docker-compose logs -f
-```
-
-### 1.3 초기 설정
-1. 브라우저에서 `http://3.38.5.248:8180` 접속
-2. 초기 관리자 비밀번호 확인:
-```bash
+# 초기 관리자 비밀번호 확인
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
-3. 추천 플러그인 설치 선택
-4. 관리자 계정 생성
 
-## 2. 필수 플러그인 설치
-1. Jenkins 관리 > 플러그인 관리 > 설치 가능
-2. 다음 플러그인 검색 및 설치:
-   - Git Integration
-   - Pipeline
-   - Credentials
-   - Docker Pipeline
-   - NodeJS
+## CI/CD 파이프라인
 
-## 3. Credentials 설정
-### 3.1 GitHub 토큰 설정
-1. Jenkins 관리 > Credentials > System > Global credentials
-2. "Add Credentials" 클릭
-3. 종류: Secret text
-4. ID: github-token
-5. Secret: GitHub Personal Access Token 입력
+### 1. 파이프라인 구성
+- 프론트엔드와 백엔드를 Docker 컨테이너로 배포
+- 환경 변수는 Jenkins Credentials로 관리
+- 배포 대상 선택 가능 (frontend, backend, both)
 
-### 3.2 환경 변수 설정
-1. Jenkins 관리 > Credentials > System > Global credentials
-2. "Add Credentials" 클릭
-3. 종류: Secret text
-4. ID: mental-map-frontend-env-vars
-5. Secret: 프론트엔드 환경 변수 JSON 형식으로 입력
-6. 동일한 방법으로 `mental-map-backend-env-vars` 생성
+### 2. 환경 변수 설정
+Jenkins Credentials에 다음 두 가지 환경 변수 설정이 필요합니다:
+1. `mental-map-frontend-env-vars`: 프론트엔드 환경 변수
+2. `mental-map-backend-env-vars`: 백엔드 환경 변수
 
-## 4. 파이프라인 설정
-### 4.1 새 파이프라인 생성
-1. Jenkins 대시보드 > 새 Item
-2. 이름 입력 (예: mental-map-app)
-3. Pipeline 선택
-4. OK 클릭
+### 3. GitHub 연동
+- GitHub 토큰을 Jenkins Credentials에 `github-token`으로 등록
+- 웹훅 설정으로 자동 빌드 트리거 구성
 
-### 4.2 파이프라인 설정
-1. Pipeline 섹션에서 "Pipeline script from SCM" 선택
-2. SCM: Git
-3. Repository URL: https://github.com/hippotnc-skku/mental-map-app.git
-4. Credentials: github-token 선택
-5. Branch Specifier: */main
-6. Script Path: Jenkinsfile
+## Docker 컨테이너 관리
 
-## 5. 파이프라인 실행
-### 5.1 수동 실행
-1. 파이프라인 페이지에서 "Build with Parameters" 클릭
-2. DEPLOY_TARGET 선택:
-   - frontend: 프론트엔드만 배포
-   - backend: 백엔드만 배포
-   - both: 전체 배포
+### 1. 프론트엔드 컨테이너
+- 포트: 3000
+- 이미지: mental-map-frontend:latest
+- 컨테이너 이름: mental-map-frontend
 
-### 5.2 자동 실행 (GitHub Webhook)
-1. GitHub 저장소 설정 > Webhooks
-2. Add webhook 클릭
-3. Payload URL: http://[JENKINS_URL]/github-webhook/
-4. Content type: application/json
-5. Events: Push events 선택
+### 2. 백엔드 컨테이너
+- 포트: 8000
+- 이미지: mental-map-backend:latest
+- 컨테이너 이름: mental-map-backend
 
-## 6. 모니터링
-### 6.1 파이프라인 상태 확인
-- Jenkins 대시보드에서 파이프라인 상태 확인
-- 각 단계별 로그 확인 가능
-
-### 6.2 PM2 모니터링
+### 3. 컨테이너 관리 명령어
 ```bash
-# Jenkins 컨테이너 접속
-docker exec -it jenkins /bin/bash
-
-# PM2 상태 확인
-pm2 status
+# 컨테이너 상태 확인
+docker ps
 
 # 로그 확인
-pm2 logs
+docker logs mental-map-frontend
+docker logs mental-map-backend
+
+# 컨테이너 재시작
+docker restart mental-map-frontend
+docker restart mental-map-backend
 ```
 
-## 7. 문제 해결
-### 7.1 일반적인 문제
-1. 권한 문제
+## 문제 해결
+
+### 1. Docker 권한 문제
+Jenkins 컨테이너에서 Docker 명령어 실행 시 권한 오류가 발생하는 경우:
 ```bash
-# Jenkins 컨테이너 내부에서
-sudo chown -R jenkins:jenkins /var/jenkins_home
+# Jenkins 컨테이너 재시작
+docker-compose restart jenkins
 ```
 
-2. Docker 권한 문제
+### 2. 환경 변수 문제
+환경 변수 관련 오류가 발생하는 경우:
+1. Jenkins Credentials에서 환경 변수 JSON 형식 확인
+2. 파이프라인 로그에서 환경 변수 파싱 오류 확인
+
+### 3. 빌드 실패
+빌드 실패 시 다음 단계 확인:
+1. Jenkins 파이프라인 로그 확인
+2. Docker 이미지 빌드 로그 확인
+3. 컨테이너 로그 확인
+
+## 유지보수
+
+### 1. Jenkins 업데이트
 ```bash
-# 호스트 시스템에서
-sudo usermod -aG docker jenkins
-```
-
-### 7.2 로그 확인
-```bash
-# Jenkins 로그
-docker-compose logs -f jenkins
-
-# PM2 로그
-docker exec jenkins pm2 logs
-```
-
-## 8. 백업 및 복구
-### 8.1 Jenkins 홈 디렉토리 백업
-```bash
-# 백업
-docker run --rm --volumes-from jenkins -v $(pwd):/backup ubuntu tar cvf /backup/jenkins_home.tar /var/jenkins_home
-
-# 복구
-docker run --rm --volumes-from jenkins -v $(pwd):/backup ubuntu tar xvf /backup/jenkins_home.tar
-```
-
-## 9. 보안 설정
-1. Jenkins 관리 > Configure Global Security
-2. Enable security 체크
-3. Jenkins' own user database 선택
-4. Matrix-based security 선택
-5. 필요한 권한 설정
-
-## 10. 유지보수
-### 10.1 컨테이너 업데이트
-```bash
-# 이미지 재빌드
-docker-compose build
+# Jenkins 이미지 재빌드
+docker-compose build jenkins
 
 # 컨테이너 재시작
 docker-compose up -d
 ```
 
-### 10.2 디스크 공간 관리
+### 2. 볼륨 백업
 ```bash
-# 사용하지 않는 이미지 삭제
-docker image prune -a
+# Jenkins 홈 디렉토리 백업
+docker run --rm -v jenkins_home:/source -v $(pwd):/backup alpine tar -czf /backup/jenkins_home.tar.gz -C /source .
+```
 
-# 사용하지 않는 볼륨 삭제
-docker volume prune
+### 3. 로그 관리
+```bash
+# Jenkins 로그 확인
+docker logs jenkins
+
+# 파이프라인 로그 확인
+# Jenkins 웹 인터페이스 > 파이프라인 > 빌드 번호 > Console Output
 ``` 
