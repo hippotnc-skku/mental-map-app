@@ -25,7 +25,25 @@ pipeline {
                             dir('frontend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                python3 -c "import json; f=open('env.json'); data=json.load(f); f.close(); f=open('.env.local', 'w'); [f.write(f'{k}={v}\\n') for k,v in data.items()]; f.close()"
+                                python3 -c "
+import json
+import sys
+try:
+    with open('env.json', 'r') as f:
+        data = json.load(f)
+    with open('.env.local', 'w') as f:
+        for k, v in data.items():
+            f.write(f'{k}={v}\\n')
+except json.JSONDecodeError as e:
+    print(f'JSON 파싱 오류: {e}', file=sys.stderr)
+    print('env.json 내용:', file=sys.stderr)
+    with open('env.json', 'r') as f:
+        print(f.read(), file=sys.stderr)
+    sys.exit(1)
+except Exception as e:
+    print(f'오류 발생: {e}', file=sys.stderr)
+    sys.exit(1)
+"
                                 rm env.json
                                 '''
                             }
@@ -78,7 +96,25 @@ pipeline {
                             dir('backend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                python3 -c "import json; f=open('env.json'); data=json.load(f); f.close(); f=open('.env.dev', 'w'); [f.write(f'{k}={v}\\n') for k,v in data.items()]; f.close()"
+                                python3 -c "
+import json
+import sys
+try:
+    with open('env.json', 'r') as f:
+        data = json.load(f)
+    with open('.env.dev', 'w') as f:
+        for k, v in data.items():
+            f.write(f'{k}={v}\\n')
+except json.JSONDecodeError as e:
+    print(f'JSON 파싱 오류: {e}', file=sys.stderr)
+    print('env.json 내용:', file=sys.stderr)
+    with open('env.json', 'r') as f:
+        print(f.read(), file=sys.stderr)
+    sys.exit(1)
+except Exception as e:
+    print(f'오류 발생: {e}', file=sys.stderr)
+    sys.exit(1)
+"
                                 rm env.json
                                 '''
                             }
