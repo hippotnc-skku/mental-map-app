@@ -12,15 +12,21 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                // 작업 디렉토리 생성 및 이동
-                sh '''
-                    cd /var/jenkins_home/workspace
-                    rm -rf mental-map-app
-                    mkdir mental-map-app
-                    cd mental-map-app
-                    git clone https://github.com/hippotnc-skku/mental-map-app.git .
-                    git checkout main
-                '''
+                // 작업 디렉토리 생성
+                sh 'mkdir -p ${WORKSPACE}'
+                
+                // Git 저장소 클론
+                dir("${WORKSPACE}") {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        extensions: [[$class: 'CleanBeforeCheckout']],
+                        userRemoteConfigs: [[
+                            credentialsId: 'github-key for jenkins',
+                            url: 'https://github.com/hippotnc-skku/mental-map-app.git'
+                        ]]
+                    ])
+                }
             }
         }
 
@@ -32,7 +38,7 @@ pipeline {
                 stage('Setup Frontend Environment') {
                     steps {
                         withCredentials([string(credentialsId: 'mental-map-frontend-env-vars', variable: 'ENV_VARS_JSON')]) {
-                            dir('/var/jenkins_home/workspace/mental-map-app/frontend') {
+                            dir("${WORKSPACE}/frontend") {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
                                 python3 -c "
@@ -63,7 +69,7 @@ except Exception as e:
 
                 stage('Build Frontend Docker Image') {
                     steps {
-                        dir('/var/jenkins_home/workspace/mental-map-app/frontend') {
+                        dir("${WORKSPACE}/frontend") {
                             sh '''
                             docker build -t mental-map-frontend:latest .
                             '''
@@ -73,7 +79,7 @@ except Exception as e:
 
                 stage('Run Frontend Container') {
                     steps {
-                        dir('/var/jenkins_home/workspace/mental-map-app/frontend') {
+                        dir("${WORKSPACE}/frontend") {
                             sh '''
                             # 기존 컨테이너 중지 및 삭제
                             docker stop mental-map-frontend || true
@@ -101,7 +107,7 @@ except Exception as e:
                 stage('Setup Backend Environment') {
                     steps {
                         withCredentials([string(credentialsId: 'mental-map-backend-env-vars', variable: 'ENV_VARS_JSON')]) {
-                            dir('/var/jenkins_home/workspace/mental-map-app/backend') {
+                            dir("${WORKSPACE}/backend") {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
                                 python3 -c "
@@ -132,7 +138,7 @@ except Exception as e:
 
                 stage('Build Backend Docker Image') {
                     steps {
-                        dir('/var/jenkins_home/workspace/mental-map-app/backend') {
+                        dir("${WORKSPACE}/backend") {
                             sh '''
                             docker build -t mental-map-backend:latest .
                             '''
@@ -142,7 +148,7 @@ except Exception as e:
 
                 stage('Run Backend Container') {
                     steps {
-                        dir('/var/jenkins_home/workspace/mental-map-app/backend') {
+                        dir("${WORKSPACE}/backend") {
                             sh '''
                             # 기존 컨테이너 중지 및 삭제
                             docker stop mental-map-backend || true
@@ -165,10 +171,10 @@ except Exception as e:
 
     post {
         always {
-            dir('/var/jenkins_home/workspace/mental-map-app/frontend') {
+            dir("${WORKSPACE}/frontend") {
                 sh 'rm -f .env.local'
             }
-            dir('/var/jenkins_home/workspace/mental-map-app/backend') {
+            dir("${WORKSPACE}/backend") {
                 sh 'rm -f .env.dev'
             }
         }
