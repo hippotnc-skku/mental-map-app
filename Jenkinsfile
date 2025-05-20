@@ -10,7 +10,7 @@ pipeline {
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
@@ -20,14 +20,12 @@ pipeline {
             when {
                 expression { params.DEPLOY_TARGET == 'frontend' || params.DEPLOY_TARGET == 'both' }
             }
-            stages {
-                stage('Setup Frontend Environment') {
-                    steps {
-                        withCredentials([string(credentialsId: 'mental-map-frontend-env-vars', variable: 'ENV_VARS_JSON')]) {
-                            dir("${env.WORKSPACE}/frontend") {
-                                sh '''
-                                echo "${ENV_VARS_JSON}" > env.json
-                                python3 -c "
+            steps {
+                withCredentials([string(credentialsId: 'mental-map-frontend-env-vars', variable: 'ENV_VARS_JSON')]) {
+                    dir("${env.WORKSPACE}/frontend") {
+                        sh '''
+                        echo "${ENV_VARS_JSON}" > env.json
+                        python3 -c "
 import json
 import sys
 try:
@@ -46,30 +44,12 @@ except Exception as e:
     print(f'오류 발생: {e}', file=sys.stderr)
     sys.exit(1)
 "
-                                rm env.json
-                                '''
-                            }
-                        }
-                    }
-                }
-
-                stage('Build Frontend Docker Image') {
-                    steps {
-                        dir("${env.WORKSPACE}/frontend") {
-                            sh 'docker build -t mental-map-frontend:latest .'
-                        }
-                    }
-                }
-
-                stage('Run Frontend Container') {
-                    steps {
-                        dir("${env.WORKSPACE}/frontend") {
-                            sh '''
-                            docker stop mental-map-frontend || true
-                            docker rm mental-map-frontend || true
-                            docker run -d --name mental-map-frontend --restart unless-stopped -p 3000:3000 --env-file .env.local mental-map-frontend:latest
-                            '''
-                        }
+                        rm env.json
+                        docker build -t mental-map-frontend:latest .
+                        docker stop mental-map-frontend || true
+                        docker rm mental-map-frontend || true
+                        docker run -d --name mental-map-frontend --restart unless-stopped -p 3000:3000 --env-file .env.local mental-map-frontend:latest
+                        '''
                     }
                 }
             }
@@ -79,14 +59,12 @@ except Exception as e:
             when {
                 expression { params.DEPLOY_TARGET == 'backend' || params.DEPLOY_TARGET == 'both' }
             }
-            stages {
-                stage('Setup Backend Environment') {
-                    steps {
-                        withCredentials([string(credentialsId: 'mental-map-backend-env-vars', variable: 'ENV_VARS_JSON')]) {
-                            dir("${env.WORKSPACE}/backend") {
-                                sh '''
-                                echo "${ENV_VARS_JSON}" > env.json
-                                python3 -c "
+            steps {
+                withCredentials([string(credentialsId: 'mental-map-backend-env-vars', variable: 'ENV_VARS_JSON')]) {
+                    dir("${env.WORKSPACE}/backend") {
+                        sh '''
+                        echo "${ENV_VARS_JSON}" > env.json
+                        python3 -c "
 import json
 import sys
 try:
@@ -105,30 +83,12 @@ except Exception as e:
     print(f'오류 발생: {e}', file=sys.stderr)
     sys.exit(1)
 "
-                                rm env.json
-                                '''
-                            }
-                        }
-                    }
-                }
-
-                stage('Build Backend Docker Image') {
-                    steps {
-                        dir("${env.WORKSPACE}/backend") {
-                            sh 'docker build -t mental-map-backend:latest .'
-                        }
-                    }
-                }
-
-                stage('Run Backend Container') {
-                    steps {
-                        dir("${env.WORKSPACE}/backend") {
-                            sh '''
-                            docker stop mental-map-backend || true
-                            docker rm mental-map-backend || true
-                            docker run -d --name mental-map-backend --restart unless-stopped -p 8000:8000 --env-file .env.dev mental-map-backend:latest
-                            '''
-                        }
+                        rm env.json
+                        docker build -t mental-map-backend:latest .
+                        docker stop mental-map-backend || true
+                        docker rm mental-map-backend || true
+                        docker run -d --name mental-map-backend --restart unless-stopped -p 8000:8000 --env-file .env.dev mental-map-backend:latest
+                        '''
                     }
                 }
             }
@@ -144,8 +104,4 @@ except Exception as e:
                 sh 'rm -f .env.dev || true'
             }
         }
-        failure {
-            echo 'Pipeline failed!'
-        }
-    }
-}
+        failure
