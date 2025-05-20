@@ -12,16 +12,21 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                // 작업 디렉토리 생성 및 이동
-                sh '''
-                    rm -rf /var/jenkins_home/workspace/mental-map-app
-                    mkdir -p /var/jenkins_home/workspace/mental-map-app
-                    cd /var/jenkins_home/workspace/mental-map-app
-                    git init
-                    git remote add origin https://github.com/hippotnc-skku/mental-map-app.git
-                    git fetch --depth=1 origin main
-                    git checkout -b main origin/main
-                '''
+                // 작업 디렉토리 생성
+                sh 'mkdir -p /var/jenkins_home/workspace/mental-map-app'
+                
+                // Git 저장소 클론
+                dir('/var/jenkins_home/workspace/mental-map-app') {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        extensions: [[$class: 'CleanBeforeCheckout']],
+                        userRemoteConfigs: [[
+                            credentialsId: 'github-token',
+                            url: 'https://github.com/hippotnc-skku/mental-map-app.git'
+                        ]]
+                    ])
+                }
             }
         }
 
