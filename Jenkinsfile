@@ -51,33 +51,31 @@ except Exception as e:
                     }
                 }
 
-                stage('Install Frontend Dependencies') {
+                stage('Build Frontend Docker Image') {
                     steps {
                         dir('frontend') {
                             sh '''
-                            node --version
-                            yarn --version
-                            yarn install --frozen-lockfile
+                            docker build -t mental-map-frontend:latest .
                             '''
                         }
                     }
                 }
 
-                stage('Build Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh 'yarn build'
-                        }
-                    }
-                }
-
-                stage('Run Frontend with PM2') {
+                stage('Run Frontend Container') {
                     steps {
                         dir('frontend') {
                             sh '''
-                            pm2 delete mental-map-frontend || true
-                            pm2 start "yarn start" --name mental-map-frontend
-                            pm2 save
+                            # 기존 컨테이너 중지 및 삭제
+                            docker stop mental-map-frontend || true
+                            docker rm mental-map-frontend || true
+                            
+                            # 새 컨테이너 실행
+                            docker run -d \
+                                --name mental-map-frontend \
+                                --restart unless-stopped \
+                                -p 3000:3000 \
+                                --env-file .env.local \
+                                mental-map-frontend:latest
                             '''
                         }
                     }
@@ -122,53 +120,31 @@ except Exception as e:
                     }
                 }
 
-                stage('Setup Python Environment') {
+                stage('Build Backend Docker Image') {
                     steps {
                         dir('backend') {
                             sh '''
-                            python3 --version
-                            python3.11 -m venv venv
-                            . venv/bin/activate
-                            pip install --upgrade pip
-                            pip install pytest pytest-cov
-                            pip install -r requirements.txt
+                            docker build -t mental-map-backend:latest .
                             '''
                         }
                     }
                 }
 
-                stage('Run Backend Tests') {
+                stage('Run Backend Container') {
                     steps {
                         dir('backend') {
                             sh '''
-                            . venv/bin/activate
-                            # 테스트 디렉토리 생성
-                            mkdir -p tests
-                            # 기본 테스트 파일 생성
-                            cat > tests/__init__.py << 'EOF'
-                            # 테스트 패키지 초기화
-                            EOF
+                            # 기존 컨테이너 중지 및 삭제
+                            docker stop mental-map-backend || true
+                            docker rm mental-map-backend || true
                             
-                            cat > tests/test_app.py << 'EOF'
-                            def test_placeholder():
-                                """기본 테스트"""
-                                assert True
-                            EOF
-                            
-                            # 테스트 실행
-                            python -m pytest tests/ -v --cov=app
-                            '''
-                        }
-                    }
-                }
-
-                stage('Run Backend with PM2') {
-                    steps {
-                        dir('backend') {
-                            sh '''
-                            pm2 delete mental-map-backend || true
-                            pm2 start "python app/main.py" --name mental-map-backend
-                            pm2 save
+                            # 새 컨테이너 실행
+                            docker run -d \
+                                --name mental-map-backend \
+                                --restart unless-stopped \
+                                -p 8000:8000 \
+                                --env-file .env.dev \
+                                mental-map-backend:latest
                             '''
                         }
                     }
@@ -185,7 +161,6 @@ except Exception as e:
             dir('backend') {
                 sh 'rm -f .env.dev'
             }
-            cleanWs()
         }
         failure {
             echo 'Pipeline failed!'
