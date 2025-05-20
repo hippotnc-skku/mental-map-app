@@ -12,15 +12,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    extensions: [[$class: 'CleanBeforeCheckout']],
-                    userRemoteConfigs: [[
-                        credentialsId: 'github-token',
-                        url: 'https://github.com/hippotnc-skku/mental-map-app.git'
-                    ]]
-                ])
+                checkout scm
             }
         }
 
