@@ -73,12 +73,12 @@ Jenkins Credentials에 다음 두 가지 환경 변수 설정이 필요합니다
 ## Docker 컨테이너 관리
 
 ### 1. 프론트엔드 컨테이너
-- 포트: 3000
+- 포트: 8003
 - 이미지: mental-map-frontend:latest
 - 컨테이너 이름: mental-map-frontend
 
 ### 2. 백엔드 컨테이너
-- 포트: 8000
+- 포트: 8002
 - 이미지: mental-map-backend:latest
 - 컨테이너 이름: mental-map-backend
 

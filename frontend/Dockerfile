@@ -16,7 +16,7 @@ COPY . .
 RUN yarn build
 
 # 포트 노출
-EXPOSE 3000
+EXPOSE 8003
 
 # 애플리케이션 실행
 CMD ["yarn", "start"] 
