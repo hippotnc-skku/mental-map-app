@@ -2,7 +2,11 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'DEPLOY_TARGET', choices: ['frontend', 'backend', 'both'], description: 'Select deployment target')
+        choice(
+            name: 'DEPLOY_TARGET',
+            choices: ['frontend', 'backend', 'both'],
+            description: '배포할 대상을 선택하세요'
+        )
     }
 
     stages {
