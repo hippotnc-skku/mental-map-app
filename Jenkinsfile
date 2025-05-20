@@ -4,8 +4,8 @@ pipeline {
     parameters {
         choice(
             name: 'DEPLOY_TARGET',
-            choices: ['frontend', 'backend', 'both'],
-            description: '배포할 대상을 선택하세요'
+            choices: ['backend', 'frontend', 'both'],
+            description: 'Select deployment target'
         )
     }
 
