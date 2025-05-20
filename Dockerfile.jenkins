@@ -35,7 +35,13 @@ RUN npm install -g pm2
 RUN mkdir -p /var/jenkins_home/workspace && \
     chown -R jenkins:jenkins /var/jenkins_home
 
-# Jenkins 사용자를 docker 그룹에 추가
-RUN usermod -aG docker jenkins
+# Docker 그룹 생성 및 Jenkins 사용자 추가
+RUN groupadd -r docker || true && \
+    usermod -aG docker jenkins
+
+# Docker 소켓 디렉토리 생성
+RUN mkdir -p /var/run && \
+    touch /var/run/docker.sock && \
+    chmod 666 /var/run/docker.sock
 
 USER jenkins 
