@@ -25,7 +25,7 @@ pipeline {
                             dir('frontend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                python3 -c "import json; f=open('env.json'); data=json.load(f); f.close(); f=open('.env.local', 'w'); [f.write(f'{k}={v}\\n') for k,v in data.items()]; f.close()"
+                                /usr/bin/jq -r "to_entries | .[] | .key + \"=\" + .value" env.json > .env.local
                                 rm env.json
                                 '''
                             }
@@ -36,7 +36,11 @@ pipeline {
                 stage('Install Frontend Dependencies') {
                     steps {
                         dir('frontend') {
-                            sh 'yarn install'
+                            sh '''
+                            node --version
+                            yarn --version
+                            yarn install --frozen-lockfile
+                            '''
                         }
                     }
                 }
@@ -74,7 +78,7 @@ pipeline {
                             dir('backend') {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                python3 -c "import json; f=open('env.json'); data=json.load(f); f.close(); f=open('.env.dev', 'w'); [f.write(f'{k}={v}\\n') for k,v in data.items()]; f.close()"
+                                /usr/bin/jq -r "to_entries | .[] | .key + \"=\" + .value" env.json > .env.dev
                                 rm env.json
                                 '''
                             }
@@ -86,6 +90,7 @@ pipeline {
                     steps {
                         dir('backend') {
                             sh '''
+                            python3 --version
                             python3.11 -m venv venv
                             . venv/bin/activate
                             pip install --upgrade pip
@@ -130,6 +135,9 @@ pipeline {
                 sh 'rm -f .env.dev'
             }
             cleanWs()
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 } 
