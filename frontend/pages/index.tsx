@@ -23,30 +23,48 @@ export default function Home() {
   const [centers, setCenters] = useState<Center[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>({
+    lat: 37.5665,
+    lng: 126.9780
+  })
 
   useEffect(() => {
     // 사용자 위치 가져오기
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          console.log('위치 정보 가져옴:', position.coords)
           setUserLocation({
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           })
         },
         (error) => {
-          console.error('Error getting location:', error)
-          setError('위치 정보를 가져오는데 실패했습니다.')
+          console.error('위치 정보 가져오기 실패:', error)
+          // 위치 정보를 가져오지 못해도 기본 위치(서울)를 사용
+          setUserLocation({
+            lat: 37.5665,
+            lng: 126.9780
+          })
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
         }
       )
+    } else {
+      console.log('Geolocation을 지원하지 않는 브라우저입니다.')
+      // 기본 위치(서울) 사용
+      setUserLocation({
+        lat: 37.5665,
+        lng: 126.9780
+      })
     }
   }, [])
 
   useEffect(() => {
     async function fetchCenters() {
-      if (!userLocation) return
-
       setLoading(true)
       setError(null)
 
