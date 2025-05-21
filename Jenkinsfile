@@ -10,25 +10,25 @@ pipeline {
     }
 
     stages {
-        stage('Clone Repository') {
-            steps {
-                // 작업 디렉토리 생성
-                sh 'mkdir -p ${WORKSPACE}'
+        // stage('Clone Repository') {
+        //     steps {
+        //         // 작업 디렉토리 생성
+        //         sh 'mkdir -p ${WORKSPACE}'
                 
-                // Git 저장소 클론
-                dir("${WORKSPACE}") {
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
-                        extensions: [[$class: 'CleanBeforeCheckout']],
-                        userRemoteConfigs: [[
-                            credentialsId: 'github-key for jenkins',
-                            url: 'https://github.com/hippotnc-skku/mental-map-app.git'
-                        ]]
-                    ])
-                }
-            }
-        }
+        //         // Git 저장소 클론
+        //         dir("${WORKSPACE}") {
+        //             checkout([
+        //                 $class: 'GitSCM',
+        //                 branches: [[name: '*/main']],
+        //                 extensions: [[$class: 'CleanBeforeCheckout']],
+        //                 userRemoteConfigs: [[
+        //                     credentialsId: 'github-key for jenkins',
+        //                     url: 'https://github.com/hippotnc-skku/mental-map-app.git'
+        //                 ]]
+        //             ])
+        //         }
+        //     }
+        // }
 
         stage('Deploy Frontend') {
             when {
