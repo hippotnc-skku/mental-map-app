@@ -24,7 +24,6 @@ class Settings(BaseSettings):
     DB_HOST: str = "3.38.5.248"
     DB_PORT: str = "5434"
     DB_NAME: str = "mentalcenter"
-    DATABASE_URL: str = "postgresql+asyncpg://smpapa:passw0rd@3.38.5.248:5434/mentalcenter"
     
     # 카카오 API 설정
     KAKAO_API_KEY: str = "c416d595df7465b0494535422d0e5ca4"
@@ -44,6 +43,9 @@ def get_settings():
     return Settings()
 
 settings = get_settings()
+
+# DATABASE_URL 생성
+settings.DATABASE_URL = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 
 if __name__ == "__main__":
     print(f"settings : {settings}")
