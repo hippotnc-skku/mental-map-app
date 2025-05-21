@@ -2,7 +2,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import select, text
 from .config import settings
-from .models import PsychCenter
 import csv
 import os
 import logging
@@ -28,6 +27,7 @@ async def init_db():
 
 async def load_initial_data(csv_file: str = "hugmom_centers_20250509.csv"):
     """CSV 파일에서 데이터를 읽어 데이터베이스에 적재합니다."""
+    from .models import PsychCenter  # 순환참조 방지용 함수 내부 import
     if not os.path.exists(csv_file):
         logger.error(f"CSV file not found: {csv_file}")
         return
