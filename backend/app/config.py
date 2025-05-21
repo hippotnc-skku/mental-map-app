@@ -15,16 +15,31 @@ if not load_dotenv(env_path):
     raise Exception(f"Failed to load .env.dev file from {env_path}")
 
 class Settings(BaseSettings):
+    # API 설정
+    API_KEY: str = "api_key_mentalcentermap"
+    
     # 데이터베이스 설정
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@db:5432/mental_map"
+    DB_USER: str = "smpapa"
+    DB_PASSWORD: str = "passw0rd"
+    DB_HOST: str = "3.38.5.248"
+    DB_PORT: str = "5434"
+    DB_NAME: str = "mentalcenter"
+    
+    # 카카오 API 설정
+    KAKAO_API_KEY: str = "c416d595df7465b0494535422d0e5ca4"
     
     # JWT 설정
     SECRET_KEY: str = "your-secret-key-here"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
+    @property
+    def DATABASE_URL(self) -> str:
+        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+    
     class Config:
         env_file = ".env.dev"
+        case_sensitive = True
 
 @lru_cache()
 def get_settings():
