@@ -50,7 +50,9 @@ export default function Home() {
         if (response.error) {
           throw new Error(response.error)
         }
-        setCenters(response.data || [])
+        if (response.data) {
+          setCenters(response.data as Center[])
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : '심리센터 정보를 가져오는데 실패했습니다.')
       } finally {

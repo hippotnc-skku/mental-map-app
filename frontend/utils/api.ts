@@ -34,10 +34,10 @@ export async function fetchApi<T>(
 
 // 심리센터 목록 조회
 export async function getCenters(lat: number, lng: number, radius: number = 2000) {
-  return fetchApi(`/centers?lat=${lat}&lng=${lng}&radius=${radius}`);
+  return fetchApi(`/api/v1/centers?lat=${lat}&lng=${lng}&radius=${radius}`);
 }
 
 // 특정 심리센터 조회
 export async function getCenter(centerId: number) {
-  return fetchApi(`/api/centers/${centerId}`);
+  return fetchApi(`/api/v1/centers/${centerId}`);
 } 
