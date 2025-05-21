@@ -1,6 +1,7 @@
 import os
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
+from functools import lru_cache
 
 # 현재 파일의 디렉토리 경로
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -15,26 +16,21 @@ if not load_dotenv(env_path):
 
 class Settings(BaseSettings):
     # 데이터베이스 설정
-    DB_USER: str = os.getenv("DB_USER", "smpapa")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "passw0rd")
-    DB_HOST: str = os.getenv("DB_HOST", "localhost")
-    DB_PORT: str = os.getenv("DB_PORT", "5434")
-    DB_NAME: str = os.getenv("DB_NAME", "mentalcenter")
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@db:5432/mental_map"
     
-    # 카카오 API 설정
-    KAKAO_API_KEY: str = os.getenv("KAKAO_API_KEY")
-    if not KAKAO_API_KEY:
-        raise ValueError("KAKAO_API_KEY is not set in .env.dev file")
-
-    @property
-    def DATABASE_URL(self) -> str:
-        return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-
-    # API 설정
-    API_V1_STR: str = "/api/v1"
-    PROJECT_NAME: str = "Mental Map API"
+    # JWT 설정
+    SECRET_KEY: str = "your-secret-key-here"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
-settings = Settings() 
+    class Config:
+        env_file = ".env.dev"
+
+@lru_cache()
+def get_settings():
+    return Settings()
+
+settings = get_settings()
 
 if __name__ == "__main__":
     print(f"settings : {settings}")

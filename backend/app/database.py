@@ -13,8 +13,13 @@ logger = logging.getLogger(__name__)
 # Base를 별도로 정의
 Base = declarative_base()
 
+# 데이터베이스 엔진 생성
 engine = create_async_engine(settings.DATABASE_URL, echo=True)
-SessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
+# 세션 팩토리 생성
+SessionLocal = sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
 async def init_db():
     async with engine.begin() as conn:
