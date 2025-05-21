@@ -184,7 +184,7 @@ export default function Map() {
 
   const fetchCenters = async (lat: number, lng: number, radius: number, kakaoMap: any) => {
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/centers`, {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/centers`, {
         params: { lat, lng, radius },
       })
       
