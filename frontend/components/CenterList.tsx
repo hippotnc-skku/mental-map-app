@@ -34,7 +34,7 @@ const CenterList: React.FC<CenterListProps> = ({ centers }) => {
   useEffect(() => {
     const fetchCenters = async () => {
       try {
-        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/centers`, {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/centers`, {
           params: { lat: 37.5665, lng: 126.9780, radius: 500000 },
         })
         setApiCenters(res.data)

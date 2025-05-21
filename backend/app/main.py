@@ -67,6 +67,7 @@ async def get_centers(
 
     return [
         {
+            "id": c.id,
             "name": c.name,
             "phone": c.phone,
             "website": c.website,
