@@ -9,6 +9,7 @@ interface Center {
   website: string
   region?: string // 시도 정보 추가
   description?: string // 설명 필드 추가
+  distance_m: number
 }
 
 interface CenterListProps {
@@ -103,19 +104,35 @@ const CenterList: React.FC<CenterListProps> = ({ centers, onCenterClick, userLoc
   )
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">내 주변 상담센터(반경 10km)</h2>
-      <ul>
-        {nearbyCenters.map(renderCenterItem)}
-      </ul>
-
-      <h2 className="text-xl font-bold mb-4 mt-8">시도별 상담센터</h2>
-      {Object.entries(centersByRegion).map(([region, centers]) => (
-        <div key={region} className="mb-4">
-          <h3 className="text-lg font-semibold mb-2">{region}</h3>
-          <ul>
-            {centers.map(renderCenterItem)}
-          </ul>
+    <div className="space-y-4">
+      {nearbyCenters.map((center, index) => (
+        <div key={index} className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <h2 className="text-lg font-semibold">{center.name}</h2>
+          <p className="text-gray-600">{center.region}</p>
+          <p className="text-sm text-gray-500">
+            {center.distance_m ? `${Math.round(center.distance_m)}m` : '거리 정보 없음'}
+          </p>
+          <div className="mt-2 space-y-1">
+            <p className="text-sm">
+              <span className="font-medium">전화:</span> {center.phone || '정보 없음'}
+            </p>
+            {center.website && (
+              <p className="text-sm">
+                <span className="font-medium">웹사이트:</span>{' '}
+                <a
+                  href={center.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  {center.website}
+                </a>
+              </p>
+            )}
+            {center.description && (
+              <p className="text-sm text-gray-600 mt-2">{center.description}</p>
+            )}
+          </div>
         </div>
       ))}
     </div>

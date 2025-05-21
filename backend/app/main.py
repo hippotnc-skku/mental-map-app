@@ -1,10 +1,17 @@
-from fastapi import FastAPI, Depends, Query
+from fastapi import FastAPI, Depends, Query, HTTPException, Security
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, select
 from .database import SessionLocal, init_db, load_initial_data
 from .models import PsychCenter
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from fastapi.security.api_key import APIKeyHeader
+from .config import settings
+import logging
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +29,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# API 키 인증 설정
+api_key_header = APIKeyHeader(name="Authorization", auto_error=True)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    if api_key_header != settings.API_KEY:
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid API Key"
+        )
+    return api_key_header
 
 # DB 세션 의존성
 async def get_db():
@@ -61,6 +79,31 @@ async def get_centers(
         }
         for c in centers
     ]
+
+@app.on_event("startup")
+async def startup_event():
+    await init_db()
+    await load_initial_data()
+
+@app.get("/")
+async def root():
+    return {"message": "Mental Center Map API"}
+
+@app.get("/api/centers", dependencies=[Depends(get_api_key)])
+async def get_centers():
+    async with SessionLocal() as session:
+        result = await session.execute(select(PsychCenter))
+        centers = result.scalars().all()
+        return centers
+
+@app.get("/api/centers/{center_id}", dependencies=[Depends(get_api_key)])
+async def get_center(center_id: int):
+    async with SessionLocal() as session:
+        result = await session.execute(select(PsychCenter).where(PsychCenter.id == center_id))
+        center = result.scalar_one_or_none()
+        if center is None:
+            raise HTTPException(status_code=404, detail="Center not found")
+        return center
 
 if __name__ == "__main__":
     import uvicorn
