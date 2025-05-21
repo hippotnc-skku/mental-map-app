@@ -51,7 +51,7 @@ async def get_db():
 async def get_centers(
     lat: float = Query(...),
     lng: float = Query(...),
-    radius: int = Query(2000),  # 기본 반경 2000m
+    radius: int = Query(10000),  # 기본 반경 10000m(10km)
     db: AsyncSession = Depends(get_db)
 ):
     query = text("""

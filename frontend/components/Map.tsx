@@ -72,7 +72,7 @@ export default function Map({ centers, userLocation }: MapProps) {
       12: 500000,  // 500km (서울-제주도 거리 포함)
       13: 1000000  // 1000km
     }
-    return radiusMap[level] || 2000
+    return radiusMap[level] || 10000
   }
 
   // 마커 제거 함수
