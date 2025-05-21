@@ -158,7 +158,7 @@ except Exception as e:
                             docker run -d \
                                 --name mental-map-backend \
                                 --restart unless-stopped \
-                                -p 8000:8000 \
+                                -p 8002:8000 \
                                 --env-file .env.dev \
                                 mental-map-backend:latest
                             '''
