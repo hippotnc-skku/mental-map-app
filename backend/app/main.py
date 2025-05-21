@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from database import SessionLocal, init_db, load_initial_data
-from models import PsychCenter
+from .database import SessionLocal, init_db, load_initial_data
+from .models import PsychCenter
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
@@ -64,4 +64,4 @@ async def get_centers(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8002)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
