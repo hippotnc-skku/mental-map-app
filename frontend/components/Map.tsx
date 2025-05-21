@@ -28,10 +28,15 @@ declare global {
   }
 }
 
-export default function Map() {
+// 수정할 코드:
+interface MapProps {
+  centers: Center[];
+  userLocation: UserLocation | null;
+}
+
+
+export default function Map({ centers, userLocation }: MapProps) {
   const [map, setMap] = useState<any>(null)
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null)
-  const [centers, setCenters] = useState<Center[]>([])
   const [error, setError] = useState<string | null>(null)
   const [currentRadius, setCurrentRadius] = useState<number>(2000)
   const [hoveredCenter, setHoveredCenter] = useState<string | null>(null)
@@ -129,136 +134,101 @@ export default function Map() {
     }
 
     const initMap = () => {
-      if (!navigator.geolocation) {
-        setError('이 브라우저에서는 위치 정보를 사용할 수 없습니다.')
+      if (!userLocation) {
+        setError('위치 정보를 가져올 수 없습니다.')
         return
       }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude
-          const lng = position.coords.longitude
-          setUserLocation({ lat, lng })
+      if (!mapContainerRef.current) return
 
-          if (!mapContainerRef.current) return
+      const options = {
+        center: new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+        level: 7,
+        minLevel: 1,
+        maxLevel: 13
+      }
 
-          const options = {
-            center: new window.kakao.maps.LatLng(lat, lng),
-            level: 7,
-            minLevel: 1,
-            maxLevel: 13
-          }
+      const kakaoMap = new window.kakao.maps.Map(mapContainerRef.current, options)
+      setMap(kakaoMap)
 
-          const kakaoMap = new window.kakao.maps.Map(mapContainerRef.current, options)
-          setMap(kakaoMap)
+      // 사용자 위치 마커 추가
+      new window.kakao.maps.Marker({
+        map: kakaoMap,
+        position: new window.kakao.maps.LatLng(userLocation.lat, userLocation.lng),
+        title: '내 위치',
+      })
 
-          // 사용자 위치 마커 추가
-          new window.kakao.maps.Marker({
-            map: kakaoMap,
-            position: new window.kakao.maps.LatLng(lat, lng),
-            title: '내 위치',
-          })
-
-          // 지도 이벤트 리스너: 반경만 변경
-          window.kakao.maps.event.addListener(kakaoMap, 'zoom_changed', () => {
-            const level = kakaoMap.getLevel()
-            const newRadius = getRadiusByLevel(level)
-            setCurrentRadius(newRadius)
-          })
-        },
-        (error) => {
-          setError('위치 정보를 가져오는데 실패했습니다.')
-        }
-      )
+      // 지도 이벤트 리스너: 반경만 변경
+      window.kakao.maps.event.addListener(kakaoMap, 'zoom_changed', () => {
+        const level = kakaoMap.getLevel()
+        const newRadius = getRadiusByLevel(level)
+        setCurrentRadius(newRadius)
+      })
     }
 
     loadKakaoMap()
-  }, [])
+  }, [userLocation])
 
-  // 2. userLocation, currentRadius가 바뀔 때만 fetchCenters 호출
+  // 2. centers가 변경될 때마다 마커 업데이트
   useEffect(() => {
-    if (userLocation && map) {
-      fetchCenters(userLocation.lat, userLocation.lng, currentRadius, map)
-    }
-  }, [userLocation, currentRadius])
+    if (!map || !userLocation) return
 
-  const fetchCenters = async (lat: number, lng: number, radius: number, kakaoMap: any) => {
-    try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/centers`, {
-        params: { lat, lng, radius },
+    // 기존 마커와 인포윈도우 제거
+    removeMarkers()
+    infowindowsRef.current.forEach(infowindow => infowindow.close())
+    infowindowsRef.current = []
+    currentInfowindowRef.current = null
+    markersMapRef.current = {}
+
+    // 새로운 마커 추가
+    centers.forEach((center) => {
+      const marker = new window.kakao.maps.Marker({
+        map: map,
+        position: new window.kakao.maps.LatLng(center.lat, center.lng),
+        title: center.name
       })
-      
-      // 각 센터의 거리 계산 (항상 내 위치 기준)
-      const centersWithDistance = res.data.map((center: Center) => ({
-        ...center,
-        distance_m: userLocation ? calculateDistance(userLocation.lat, userLocation.lng, center.lat, center.lng) : 0
-      }));
 
-      // 거리순으로 정렬
-      centersWithDistance.sort((a: Center, b: Center) => a.distance_m - b.distance_m);
-      
-      setCenters(centersWithDistance)
+      const content = `
+        <div style="padding:5px;min-width:200px">
+          <strong>${center.name}</strong><br/>
+          <a href="tel:${center.phone.replace(/-/g, '')}" style="color: #007bff; text-decoration: none;">
+            📞 ${center.phone}
+          </a><br/>
+          <a href="${center.website}" target="_blank" style="color: #007bff; text-decoration: none;">
+            🌐 홈페이지
+          </a><br/>
+          거리: ${formatDistance(center.distance_m)}
+        </div>
+      `
+      const infowindow = new window.kakao.maps.InfoWindow({
+        content,
+      })
 
-      // 기존 마커와 인포윈도우 제거
-      removeMarkers()
-      infowindowsRef.current.forEach(infowindow => infowindow.close())
-      infowindowsRef.current = []
-      currentInfowindowRef.current = null
-      markersMapRef.current = {}
+      // 인포윈도우를 참조 배열에 추가
+      infowindowsRef.current.push(infowindow)
 
-      // 새로운 마커 추가
-      centersWithDistance.forEach((center: Center) => {
-        const marker = new window.kakao.maps.Marker({
-          map: kakaoMap,
-          position: new window.kakao.maps.LatLng(center.lat, center.lng),
-          title: center.name
-        })
-
-        const content = `
-          <div style="padding:5px;min-width:200px">
-            <strong>${center.name}</strong><br/>
-            <a href="tel:${center.phone.replace(/-/g, '')}" style="color: #007bff; text-decoration: none;">
-              📞 ${center.phone}
-            </a><br/>
-            <a href="${center.website}" target="_blank" style="color: #007bff; text-decoration: none;">
-              🌐 홈페이지
-            </a><br/>
-            거리: ${formatDistance(center.distance_m)}
-          </div>
-        `
-        const infowindow = new window.kakao.maps.InfoWindow({
-          content,
-        })
-
-        // 인포윈도우를 참조 배열에 추가
-        infowindowsRef.current.push(infowindow)
-
-        window.kakao.maps.event.addListener(marker, 'click', function () {
-          // 현재 열려있는 인포윈도우가 있고, 클릭한 마커의 인포윈도우와 같다면 닫기
-          if (currentInfowindowRef.current === infowindow) {
-            infowindow.close()
-            currentInfowindowRef.current = null
-          } else {
-            // 다른 인포윈도우가 열려있다면 닫기
-            if (currentInfowindowRef.current) {
-              currentInfowindowRef.current.close()
-            }
-            // 새로운 인포윈도우 열기
-            infowindow.open(kakaoMap, marker)
-            currentInfowindowRef.current = infowindow
+      window.kakao.maps.event.addListener(marker, 'click', function () {
+        // 현재 열려있는 인포윈도우가 있고, 클릭한 마커의 인포윈도우와 같다면 닫기
+        if (currentInfowindowRef.current === infowindow) {
+          infowindow.close()
+          currentInfowindowRef.current = null
+        } else {
+          // 다른 인포윈도우가 열려있다면 닫기
+          if (currentInfowindowRef.current) {
+            currentInfowindowRef.current.close()
           }
-        })
-
-        // 마커를 참조 배열에 추가
-        markersRef.current.push(marker)
-        // 마커를 Map에 저장 (센터 이름을 키로 사용)
-        markersMapRef.current[center.name] = { marker, infowindow }
+          // 새로운 인포윈도우 열기
+          infowindow.open(map, marker)
+          currentInfowindowRef.current = infowindow
+        }
       })
-    } catch (error) {
-      console.error('Error fetching centers:', error)
-      setError('센터 정보를 가져오는데 실패했습니다.')
-    }
-  }
+
+      // 마커를 참조 배열에 추가
+      markersRef.current.push(marker)
+      // 마커를 Map에 저장 (센터 이름을 키로 사용)
+      markersMapRef.current[center.name] = { marker, infowindow }
+    })
+  }, [centers, map, userLocation])
 
   // 센터 목록 클릭 핸들러
   const handleCenterClick = (center: Center) => {

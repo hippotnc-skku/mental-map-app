@@ -14,6 +14,11 @@ interface Center {
   distance_m: number
 }
 
+interface MapProps {
+  centers: Center[];
+  userLocation: { lat: number; lng: number } | null;
+}
+
 export default function Home() {
   const [centers, setCenters] = useState<Center[]>([])
   const [loading, setLoading] = useState(false)
