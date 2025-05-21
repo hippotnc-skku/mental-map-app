@@ -47,7 +47,7 @@ async def get_db():
         yield session
 
 # 심리센터 거리순 정렬 + 반경 필터링 API
-@app.get("/api/centers/{center_id}", dependencies=[Depends(get_api_key)])
+@app.get("/api/centers", dependencies=[Depends(get_api_key)])
 async def get_centers(
     lat: float = Query(...),
     lng: float = Query(...),
