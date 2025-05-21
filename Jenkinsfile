@@ -89,7 +89,7 @@ except Exception as e:
                             docker run -d \
                                 --name mental-map-frontend \
                                 --restart unless-stopped \
-                                -p 3000:3000 \
+                                -p 8002:3000 \
                                 --env-file .env.local \
                                 mental-map-frontend:latest
                             '''

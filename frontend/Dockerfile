@@ -5,9 +5,14 @@ WORKDIR /app
 # 필요한 시스템 패키지 설치
 RUN apk add --no-cache python3 make g++
 
-# 패키지 파일 복사 및 의존성 설치
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+# package.json만 먼저 복사
+COPY package.json ./
+
+# yarn.lock 파일이 있으면 복사, 없으면 무시
+COPY yarn.lock* ./
+
+# 의존성 설치
+RUN yarn install
 
 # 소스 코드 복사
 COPY . .
@@ -15,8 +20,8 @@ COPY . .
 # 빌드
 RUN yarn build
 
-# 포트 노출
-EXPOSE 8003
+# 포트 설정
+EXPOSE 3000
 
-# 애플리케이션 실행
+# 실행
 CMD ["yarn", "start"] 
