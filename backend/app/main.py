@@ -47,7 +47,7 @@ async def get_db():
         yield session
 
 # 심리센터 거리순 정렬 + 반경 필터링 API
-@app.get("/api/centers", dependencies=[Depends(get_api_key)])
+@app.get("/api/v1/centers", dependencies=[Depends(get_api_key)])
 async def get_centers(
     lat: float = Query(...),
     lng: float = Query(...),
@@ -82,19 +82,7 @@ async def get_centers(
     ]
 
 
-
-# @app.get("/")
-# async def root():
-#     return {"message": "Mental Center Map API"}
-
-# @app.get("/api/centers", dependencies=[Depends(get_api_key)])
-# async def get_centers():
-#     async with SessionLocal() as session:
-#         result = await session.execute(select(PsychCenter))
-#         centers = result.scalars().all()
-#         return centers
-
-@app.get("/api/centers/{center_id}", dependencies=[Depends(get_api_key)])
+@app.get("/api/v1/centers/{center_id}", dependencies=[Depends(get_api_key)])
 async def get_center(center_id: int):
     async with SessionLocal() as session:
         result = await session.execute(select(PsychCenter).where(PsychCenter.id == center_id))
@@ -103,11 +91,7 @@ async def get_center(center_id: int):
             raise HTTPException(status_code=404, detail="Center not found")
         return center
 
-@app.on_event("startup")
-async def startup_event():
-    await init_db()
-    await load_initial_data()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8002)
