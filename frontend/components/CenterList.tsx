@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
 
-const API_KEY = 'api_key_mentalcentermap'
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || 'api_key_mentalcentermap'
 
 interface Center {
   name: string
@@ -39,7 +39,8 @@ const CenterList: React.FC<CenterListProps> = ({ centers }) => {
         const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/centers`, {
           params: { lat: 37.5665, lng: 126.9780, radius: 500000 },
           headers: {
-            'Authorization': API_KEY
+            'Authorization': API_KEY,
+            'Content-Type': 'application/json'
           }
         })
         setApiCenters(res.data)
