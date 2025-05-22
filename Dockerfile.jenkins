@@ -13,6 +13,7 @@ RUN apt-get update && \
     gnupg \
     lsb-release \
     software-properties-common \
+    awscli \
     && rm -rf /var/lib/apt/lists/*
 
 # Docker 설치
