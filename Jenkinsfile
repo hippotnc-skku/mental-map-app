@@ -31,7 +31,8 @@ data = json.load(open("env.json"))
 with open(".env.local", "w") as f:
     for k, v in data.items():
         f.write(f"{k}={v}\\n")'
-                        ''' && rm env.json
+                        '''
+                        sh 'rm env.json'
                     }
                     sh """
                     docker build -t mantal-map-frontend:${BUILD_TIME} . && \
@@ -60,7 +61,8 @@ data = json.load(open("env.json"))
 with open(".env.${DEPLOY_ENV}", "w") as f:
     for k, v in data.items():
         f.write(f"{k}={v}\\n")'
-                            """ && rm env.json
+                            """
+                            sh 'rm env.json'
                         }
 
                         sh """
