@@ -32,13 +32,14 @@ declare global {
 interface MapProps {
   centers: Center[];
   userLocation: UserLocation | null;
+  onRadiusChange: (radius: number) => void;
+  currentRadius: number;
 }
 
 
-export default function Map({ centers, userLocation }: MapProps) {
+export default function Map({ centers, userLocation, onRadiusChange, currentRadius }: MapProps) {
   const [map, setMap] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  const [currentRadius, setCurrentRadius] = useState<number>(2000)
   const [hoveredCenter, setHoveredCenter] = useState<string | null>(null)
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const markersRef = useRef<any[]>([])
@@ -55,24 +56,33 @@ export default function Map({ centers, userLocation }: MapProps) {
   }
 
   // 지도 레벨에 따른 반경 계산 함수
+  const radiusMap: { [key: number]: number } = {
+    1: 100,
+    2: 250,
+    3: 500,
+    4: 1000,
+    5: 2500,
+    6: 5000,
+    7: 10000,
+    8: 25000,
+    9: 50000,
+    10: 100000,
+    11: 250000,
+    12: 500000,
+    13: 1000000
+  }
   const getRadiusByLevel = (level: number): number => {
-    // 지도 레벨별 대략적인 반경 (미터 단위)
-    const radiusMap: { [key: number]: number } = {
-      1: 100,      // 100m
-      2: 250,      // 250m
-      3: 500,      // 500m
-      4: 1000,     // 1km
-      5: 2500,     // 2.5km
-      6: 5000,     // 5km
-      7: 10000,    // 10km
-      8: 25000,    // 25km
-      9: 50000,    // 50km
-      10: 100000,  // 100km
-      11: 250000,  // 250km
-      12: 500000,  // 500km (서울-제주도 거리 포함)
-      13: 1000000  // 1000km
+    return radiusMap[level] || 500000
+  }
+  // 반경에 맞는 레벨을 찾는 함수
+  const getLevelByRadius = (radius: number): number => {
+    const entries = Object.entries(radiusMap)
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (radius >= Number(entries[i][1])) {
+        return Number(entries[i][0])
+      }
     }
-    return radiusMap[level] || 10000
+    return 13
   }
 
   // 마커 제거 함수
@@ -162,12 +172,14 @@ export default function Map({ centers, userLocation }: MapProps) {
       window.kakao.maps.event.addListener(kakaoMap, 'zoom_changed', () => {
         const level = kakaoMap.getLevel()
         const newRadius = getRadiusByLevel(level)
-        setCurrentRadius(newRadius)
+        if (newRadius !== currentRadius) {
+          onRadiusChange(newRadius)
+        }
       })
     }
 
     loadKakaoMap()
-  }, [userLocation])
+  }, [userLocation, onRadiusChange])
 
   // 2. centers가 변경될 때마다 마커 업데이트
   useEffect(() => {
@@ -229,6 +241,14 @@ export default function Map({ centers, userLocation }: MapProps) {
       markersMapRef.current[center.name] = { marker, infowindow }
     })
   }, [centers, map, userLocation])
+
+  // 반경이 바뀔 때마다 지도 레벨 맞추기
+  useEffect(() => {
+    if (map && currentRadius) {
+      const level = getLevelByRadius(currentRadius)
+      map.setLevel(level)
+    }
+  }, [currentRadius, map])
 
   // 센터 목록 클릭 핸들러
   const handleCenterClick = (center: Center) => {
