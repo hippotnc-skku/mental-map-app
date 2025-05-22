@@ -98,6 +98,7 @@ with open(".env.${DEPLOY_ENV}", "w") as f:
                             sh """
                             scp -i $SSH_KEY_FILE frontend/${FRONT_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
                             ssh -i $SSH_KEY_FILE ubuntu@${TARGET_SERVER} "
+                              aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL && 
                               docker pull $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME} && 
                               docker stop mental-map-frontend || true && 
                               docker rm mental-map-frontend || true && 
