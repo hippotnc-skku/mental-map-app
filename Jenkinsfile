@@ -54,19 +54,19 @@ pipeline {
 import json
 import sys
 try:
-    with open('env.json', 'r') as f:
+    with open("env.json", "r") as f:
         data = json.load(f)
-    with open('.env.local', 'w') as f:
+    with open(".env.local", "w") as f:
         for k, v in data.items():
-            f.write(f'{k}={v}\n')
+            f.write(f'{k}={v}\\n')
 except json.JSONDecodeError as e:
     print(f'JSON 파싱 오류: {e}', file=sys.stderr)
     print('env.json 내용:', file=sys.stderr)
-    with open('env.json', 'r') as f:
+    with open("env.json", "r") as f:
         print(f.read(), file=sys.stderr)
     sys.exit(1)
 except Exception as e:
-    print(f'오류 발생: {e}', file=sys.stderr)
+    print(f"오류 발생: {e}", file=sys.stderr)
     sys.exit(1)
 "
                                 rm env.json
@@ -138,19 +138,19 @@ except Exception as e:
 import json
 import sys
 try:
-    with open('env.json', 'r') as f:
+    with open("env.json", "r") as f:
         data = json.load(f)
-    with open('.env.dev', 'w') as f:
+    with open(".env.dev", "w") as f:
         for k, v in data.items():
-            f.write(f'{k}={v}\n')
+            f.write(f'{k}={v}\\n')
 except json.JSONDecodeError as e:
     print(f'JSON 파싱 오류: {e}', file=sys.stderr)
     print('env.json 내용:', file=sys.stderr)
-    with open('env.json', 'r') as f:
+    with open("env.json", "r") as f:
         print(f.read(), file=sys.stderr)
     sys.exit(1)
 except Exception as e:
-    print(f'오류 발생: {e}', file=sys.stderr)
+    print(f"오류 발생: {e}", file=sys.stderr)
     sys.exit(1)
 "
                                 rm env.json
