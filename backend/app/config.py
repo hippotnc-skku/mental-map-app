@@ -8,7 +8,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # backend 디렉토리 경로
 backend_dir = os.path.dirname(current_dir)
 # .env.dev 파일 경로
-env_path = os.path.join(backend_dir, '.env.dev')
+ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+env_path = os.path.join(backend_dir, f".env.{ENVIRONMENT}")
 
 # .env.dev 파일 로드
 if not load_dotenv(env_path):
@@ -34,7 +35,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     class Config:
-        env_file = ".env.dev"
+        env_file = env_path
         case_sensitive = True
         extra = "allow"
 
