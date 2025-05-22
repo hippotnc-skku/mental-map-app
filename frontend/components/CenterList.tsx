@@ -27,7 +27,9 @@ const CenterList: React.FC<CenterListProps> = ({ centers }) => {
           </p> */}
           <div className="mt-2 space-y-1">
             <p className="text-sm">
-              <span className="font-medium">전화:</span> {center.phone || '정보 없음'}
+              <span className="font-medium">전화:</span> {center.phone ? (
+                <a href={`tel:${center.phone.replace(/-/g, '')}`} className="text-blue-600 underline ml-1">{center.phone}</a>
+              ) : '정보 없음'}
             </p>
             {center.website && (
               <p className="text-sm">
