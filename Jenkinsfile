@@ -142,10 +142,10 @@ try:
         data = json.load(f)
     with open(".env.dev", "w") as f:
         for k, v in data.items():
-            f.write(f'{k}={v}\\n')
+            f.write(f"{k}={v}\\n")
 except json.JSONDecodeError as e:
-    print(f'JSON 파싱 오류: {e}', file=sys.stderr)
-    print('env.json 내용:', file=sys.stderr)
+    print(f"JSON 파싱 오류: {e}", file=sys.stderr)
+    print("env.json 내용:", file=sys.stderr)
     with open("env.json", "r") as f:
         print(f.read(), file=sys.stderr)
     sys.exit(1)
