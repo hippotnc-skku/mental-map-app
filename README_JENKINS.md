@@ -1,3 +1,69 @@
+# Jenkins 배포 가이드 (최신 ECR/멀티환경/원격배포 반영)
+
+## 최신 Jenkins 배포 구조
+
+- 프론트엔드/백엔드 모두 **AWS ECR**에 도커 이미지를 push
+- 각 환경(dev, staging, prod)별로 태그 관리
+- 원격 서버(ubuntu)에 SSH로 접속해 ECR에서 이미지를 pull, 컨테이너 실행
+- 환경 변수는 Jenkins Credentials(JSON)로 관리, 파이썬으로 .env 파일 생성
+- ssh-private-key도 Jenkins Credentials로 관리
+
+### Jenkinsfile 주요 단계
+
+1. **Build & Push Frontend Image**
+    - frontend 디렉토리에서 환경변수 파일 생성 (env.json → .env.local)
+    - 도커 이미지 빌드 및 ECR push (frontend-<env>-<빌드시간> 태그)
+2. **Build & Push Backend Image**
+    - backend 디렉토리에서 환경변수 파일 생성 (env.json → .env.<env>)
+    - 도커 이미지 빌드 및 ECR push (backend-<env>-<빌드시간> 태그)
+3. **Deploy to Remote Server**
+    - SSH로 원격 서버 접속, .env 파일 scp, ECR 로그인, 이미지 pull, 컨테이너 실행
+    - ssh-keyscan으로 known_hosts 등록
+
+### Jenkins Credentials 필요 목록
+- AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+- ssh-private-key
+- mental-map-frontend-env-vars (JSON)
+- mental-map-backend-env-dev-vars, ... (환경별 JSON)
+
+### 예시 스크립트 (핵심 부분)
+
+```groovy
+// 환경변수 파일 생성 (frontend)
+writeFile file: 'env.json', text: ENV_VARS_JSON
+sh '''
+python3 -c '
+import json
+data = json.load(open("env.json"))
+with open(".env.local", "w") as f:
+    for k, v in data.items():
+        f.write(f"{k}={v}\\n")'
+rm env.json
+'''
+
+// 도커 빌드/푸시 (frontend)
+sh """
+docker build -t mental-map-frontend:${BUILD_TIME} . && \
+aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL && \
+docker tag mental-map-frontend:${BUILD_TIME} $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME} && \
+docker push $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}
+"""
+
+// 원격 배포 (예시)
+sh """
+scp -i $SSH_KEY_FILE frontend/.env.local ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
+ssh -i $SSH_KEY_FILE ubuntu@${TARGET_SERVER} "
+  aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL && 
+  docker pull $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME} && 
+  docker stop mental-map-frontend || true && 
+  docker rm mental-map-frontend || true && 
+  docker run -d --name mental-map-frontend --restart unless-stopped -p 8003:3000 \
+    --env-file /home/ubuntu/.env.local $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}"
+"""
+```
+
+---
+
 # Jenkins 설정 가이드
 
 ## 개요
