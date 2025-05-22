@@ -1,6 +1,15 @@
 pipeline {
     agent any
 
+    environment {
+        AWS_ACCOUNT_ID = '794921296945'
+        AWS_REGION = 'ap-northeast-2'
+        ECR_REPO = 'hippotnc/mantal-map-app'
+        ECR_URL = '794921296945.dkr.ecr.ap-northeast-2.amazonaws.com/hippotnc/mantal-map-app'
+        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+    }
+
     parameters {
         choice(
             name: 'DEPLOY_TARGET',
@@ -49,7 +58,7 @@ try:
         data = json.load(f)
     with open('.env.local', 'w') as f:
         for k, v in data.items():
-            f.write(f'{k}={v}\\n')
+            f.write(f'{k}={v}\n')
 except json.JSONDecodeError as e:
     print(f'JSON 파싱 오류: {e}', file=sys.stderr)
     print('env.json 내용:', file=sys.stderr)
@@ -71,7 +80,22 @@ except Exception as e:
                     steps {
                         dir("${WORKSPACE}/frontend") {
                             sh '''
-                            docker build -t mental-map-frontend:latest .
+                            docker build -t mantal-map-frontend:latest .
+                            '''
+                        }
+                    }
+                }
+
+                stage('Push Frontend Image to ECR') {
+                    steps {
+                        dir("${WORKSPACE}/frontend") {
+                            sh '''
+                            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                            aws configure set default.region $AWS_REGION
+                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+                            docker tag mantal-map-frontend:latest $ECR_URL:frontend-latest
+                            docker push $ECR_URL:frontend-latest
                             '''
                         }
                     }
@@ -81,17 +105,17 @@ except Exception as e:
                     steps {
                         dir("${WORKSPACE}/frontend") {
                             sh '''
-                            # 기존 컨테이너 중지 및 삭제
-                            docker stop mental-map-frontend || true
-                            docker rm mental-map-frontend || true
-                            
-                            # 새 컨테이너 실행
+                            docker stop mantal-map-frontend || true
+                            docker rm mantal-map-frontend || true
+
+                            docker pull $ECR_URL:frontend-latest
+
                             docker run -d \
-                                --name mental-map-frontend \
+                                --name mantal-map-frontend \
                                 --restart unless-stopped \
                                 -p 8003:3000 \
                                 --env-file .env.local \
-                                mental-map-frontend:latest
+                                $ECR_URL:frontend-latest
                             '''
                         }
                     }
@@ -118,7 +142,7 @@ try:
         data = json.load(f)
     with open('.env.dev', 'w') as f:
         for k, v in data.items():
-            f.write(f'{k}={v}\\n')
+            f.write(f'{k}={v}\n')
 except json.JSONDecodeError as e:
     print(f'JSON 파싱 오류: {e}', file=sys.stderr)
     print('env.json 내용:', file=sys.stderr)
@@ -140,7 +164,22 @@ except Exception as e:
                     steps {
                         dir("${WORKSPACE}/backend") {
                             sh '''
-                            docker build -t mental-map-backend:latest .
+                            docker build -t mantal-map-backend:latest .
+                            '''
+                        }
+                    }
+                }
+
+                stage('Push Backend Image to ECR') {
+                    steps {
+                        dir("${WORKSPACE}/backend") {
+                            sh '''
+                            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+                            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+                            aws configure set default.region $AWS_REGION
+                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+                            docker tag mantal-map-backend:latest $ECR_URL:backend-latest
+                            docker push $ECR_URL:backend-latest
                             '''
                         }
                     }
@@ -150,17 +189,17 @@ except Exception as e:
                     steps {
                         dir("${WORKSPACE}/backend") {
                             sh '''
-                            # 기존 컨테이너 중지 및 삭제
-                            docker stop mental-map-backend || true
-                            docker rm mental-map-backend || true
-                            
-                            # 새 컨테이너 실행
+                            docker stop mantal-map-backend || true
+                            docker rm mantal-map-backend || true
+
+                            docker pull $ECR_URL:backend-latest
+
                             docker run -d \
-                                --name mental-map-backend \
+                                --name mantal-map-backend \
                                 --restart unless-stopped \
                                 -p 0.0.0.0:8002:8000 \
                                 --env-file .env.dev \
-                                mental-map-backend:latest
+                                $ECR_URL:backend-latest
                             '''
                         }
                     }
