@@ -134,7 +134,7 @@ except Exception as e:
                             dir("${WORKSPACE}/backend") {
                                 sh '''
                                 echo "${ENV_VARS_JSON}" > env.json
-                                python3 -c "
+                                python3 -c '
 import json
 import sys
 try:
@@ -152,7 +152,7 @@ except json.JSONDecodeError as e:
 except Exception as e:
     print(f"오류 발생: {e}", file=sys.stderr)
     sys.exit(1)
-"
+'
                                 rm env.json
                                 '''
                             }
