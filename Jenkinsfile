@@ -111,6 +111,7 @@ with open(".env.${DEPLOY_ENV}", "w") as f:
                             sh """
                             scp -i $SSH_KEY_FILE backend/${BACK_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
                             ssh -i $SSH_KEY_FILE ubuntu@${TARGET_SERVER} "
+                              aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL && 
                               docker pull $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME} && 
                               docker stop mental-map-backend || true && 
                               docker rm mental-map-backend || true && 
