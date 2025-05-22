@@ -6,7 +6,6 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
-        SSH_KEY = credentials('ssh-private-key')
         ECR_REPO = 'hippotnc/mental-map-app'  
         ECR_URL = "794921296945.dkr.ecr.ap-northeast-2.amazonaws.com/${ECR_REPO}"
         BUILD_TIME = "${new Date().format('yyyyMMdd-HHmm', TimeZone.getTimeZone('Asia/Seoul'))}"
@@ -78,43 +77,48 @@ with open(".env.${DEPLOY_ENV}", "w") as f:
 
         stage('Deploy to Remote Server') {
             steps {
-                script {
-                    def TARGET_SERVER = ""
-                    def FRONT_ENV_FILE = ".env.local"
-                    def BACK_ENV_FILE = ".env.${params.DEPLOY_ENV}"
+                withCredentials([sshUserPrivateKey(credentialsId: 'ssh-private-key', keyFileVariable: 'SSH_KEY_FILE')]) {
+                    script {
+                        def TARGET_SERVER = ""
+                        def FRONT_ENV_FILE = ".env.local"
+                        def BACK_ENV_FILE = ".env.${params.DEPLOY_ENV}"
 
-                    if (params.DEPLOY_ENV == 'dev') {
-                        TARGET_SERVER = '10.0.0.144'
-                    } else if (params.DEPLOY_ENV == 'staging') {
-                        TARGET_SERVER = '10.0.0.187'
-                    } else if (params.DEPLOY_ENV == 'prod') {
-                        TARGET_SERVER = '10.0.0.95'
-                    }
+                        if (params.DEPLOY_ENV == 'dev') {
+                            TARGET_SERVER = '10.0.0.144'
+                        } else if (params.DEPLOY_ENV == 'staging') {
+                            TARGET_SERVER = '10.0.0.187'
+                        } else if (params.DEPLOY_ENV == 'prod') {
+                            TARGET_SERVER = '10.0.0.95'
+                        }
 
-                    if (params.DEPLOY_TARGET == 'frontend' || params.DEPLOY_TARGET == 'both') {
-                        sh """
-                        scp -i $SSH_KEY frontend/${FRONT_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@${TARGET_SERVER} "\
-                          docker pull $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME} && \
-                          docker stop mantal-map-frontend || true && \
-                          docker rm mantal-map-frontend || true && \
-                          docker run -d --name mantal-map-frontend --restart unless-stopped -p 8003:3000 \
-                            --env-file /home/ubuntu/${FRONT_ENV_FILE} $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}"
-                        """
-                    }
+                        // SSH known_hosts 등록
+                        sh "ssh-keyscan -H ${TARGET_SERVER} >> ~/.ssh/known_hosts"
 
-                    if (params.DEPLOY_TARGET == 'backend' || params.DEPLOY_TARGET == 'both') {
-                        sh """
-                        scp -i $SSH_KEY backend/${BACK_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@${TARGET_SERVER} "\
-                          docker pull $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME} && \
-                          docker stop mantal-map-backend || true && \
-                          docker rm mantal-map-backend || true && \
-                          docker run -d --name mantal-map-backend --restart unless-stopped -p 8002:8000 \
-                            --env ENVIRONMENT=${params.DEPLOY_ENV} \
-                            --env-file /home/ubuntu/${BACK_ENV_FILE} \
-                            $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME}"
-                        """
+                        if (params.DEPLOY_TARGET == 'frontend' || params.DEPLOY_TARGET == 'both') {
+                            sh """
+                            scp -i $SSH_KEY_FILE frontend/${FRONT_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
+                            ssh -i $SSH_KEY_FILE ubuntu@${TARGET_SERVER} "
+                              docker pull $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME} && 
+                              docker stop mantal-map-frontend || true && 
+                              docker rm mantal-map-frontend || true && 
+                              docker run -d --name mantal-map-frontend --restart unless-stopped -p 8003:3000 \\
+                                --env-file /home/ubuntu/${FRONT_ENV_FILE} $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}"
+                            """
+                        }
+
+                        if (params.DEPLOY_TARGET == 'backend' || params.DEPLOY_TARGET == 'both') {
+                            sh """
+                            scp -i $SSH_KEY_FILE backend/${BACK_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
+                            ssh -i $SSH_KEY_FILE ubuntu@${TARGET_SERVER} "
+                              docker pull $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME} && 
+                              docker stop mantal-map-backend || true && 
+                              docker rm mantal-map-backend || true && 
+                              docker run -d --name mantal-map-backend --restart unless-stopped -p 8002:8000 \\
+                                --env ENVIRONMENT=${params.DEPLOY_ENV} \\
+                                --env-file /home/ubuntu/${BACK_ENV_FILE} \\
+                                $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME}"
+                            """
+                        }
                     }
                 }
             }
