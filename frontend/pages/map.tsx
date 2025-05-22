@@ -36,7 +36,7 @@ export default function MapPage() {
       setLoading(true)
       try {
         const response = await getCenters(userLocation.lat, userLocation.lng, currentRadius)
-        setCenters(response.data || [])
+        setCenters((response.data as any[]) || [])
       } catch (err) {
         setError('센터 정보를 불러오지 못했습니다.')
       } finally {

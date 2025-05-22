@@ -39,7 +39,7 @@ export default function CentersPage() {
       setLoading(true)
       try {
         const response = await getCenters(userLocation.lat, userLocation.lng, 20000)
-        setCenters(response.data || [])
+        setCenters((response.data as any[]) || [])
       } catch (err) {
         setError('센터 정보를 불러오지 못했습니다.')
       } finally {
@@ -54,7 +54,7 @@ export default function CentersPage() {
     const fetchAllCenters = async () => {
       try {
         const response = await getCenters(37.5665, 126.9780, 1000000)
-        setAllCenters(response.data || [])
+        setAllCenters((response.data as any[]) || [])
       } catch (err) {
         // 무시
       }
@@ -89,6 +89,7 @@ export default function CentersPage() {
           <h1 className="text-2xl font-bold">[전국 심리센터]</h1>
           <div className="flex space-x-2 overflow-x-auto pb-2">
             {regions.map(region => (
+              
               <button
                 key={region}
                 className={`px-4 py-2 font-semibold rounded border ${regionOpen === region ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
