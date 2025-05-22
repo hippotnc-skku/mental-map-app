@@ -22,30 +22,24 @@ pipeline {
             when { expression { params.DEPLOY_TARGET == 'frontend' || params.DEPLOY_TARGET == 'both' } }
             steps {
                 dir("frontend") {
-                    script {
-                        def DEPLOY_ENV = params.DEPLOY_ENV
-                        withCredentials([string(credentialsId: 'mental-map-frontend-env-vars', variable: 'ENV_VARS_JSON')]) {
-                            sh """
-                            cat > env.json <<EOF
-$ENV_VARS_JSON
-EOF
-                            python3 -c '
+                    withCredentials([string(credentialsId: 'mental-map-frontend-env-vars', variable: 'ENV_VARS_JSON')]) {
+                        writeFile file: 'env.json', text: ENV_VARS_JSON
+                        sh '''
+                        python3 -c '
 import json
 data = json.load(open("env.json"))
 with open(".env.local", "w") as f:
     for k, v in data.items():
         f.write(f"{k}={v}\\n")'
-                            rm env.json
-                            """
-                        }
-
-                        sh """
-                        docker build -t mantal-map-frontend:${BUILD_TIME} .
-                        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
-                        docker tag mantal-map-frontend:${BUILD_TIME} $ECR_URL:frontend-${DEPLOY_ENV}-${BUILD_TIME}
-                        docker push $ECR_URL:frontend-${DEPLOY_ENV}-${BUILD_TIME}
-                        """
+                        rm env.json
+                        '''
                     }
+                    sh '''
+                    docker build -t mantal-map-frontend:${BUILD_TIME} .
+                    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
+                    docker tag mantal-map-frontend:${BUILD_TIME} $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}
+                    docker push $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}
+                    '''
                 }
             }
         }
@@ -59,10 +53,8 @@ with open(".env.local", "w") as f:
                         def backendEnvCredId = "mental-map-backend-env-${DEPLOY_ENV}-vars"
 
                         withCredentials([string(credentialsId: backendEnvCredId, variable: 'ENV_VARS_JSON')]) {
+                            writeFile file: 'env.json', text: ENV_VARS_JSON
                             sh """
-                            cat > env.json <<EOF
-$ENV_VARS_JSON
-EOF
                             python3 -c '
 import json
 data = json.load(open("env.json"))
@@ -75,68 +67,4 @@ with open(".env.${DEPLOY_ENV}", "w") as f:
 
                         sh """
                         docker build -t mantal-map-backend:${BUILD_TIME} .
-                        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_URL
-                        docker tag mantal-map-backend:${BUILD_TIME} $ECR_URL:backend-${DEPLOY_ENV}-${BUILD_TIME}
-                        docker push $ECR_URL:backend-${DEPLOY_ENV}-${BUILD_TIME}
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Deploy to Remote Server') {
-            steps {
-                script {
-                    def DEPLOY_ENV = params.DEPLOY_ENV
-                    def TARGET_SERVER = ""
-                    def FRONT_ENV_FILE = ".env.local"
-                    def BACK_ENV_FILE = ".env.${DEPLOY_ENV}"
-
-                    if (DEPLOY_ENV == 'dev') {
-                        TARGET_SERVER = '10.0.0.144'
-                    } else if (DEPLOY_ENV == 'staging') {
-                        TARGET_SERVER = '10.0.0.187'
-                    } else if (DEPLOY_ENV == 'prod') {
-                        TARGET_SERVER = '10.0.0.95'
-                    }
-
-                    if (params.DEPLOY_TARGET == 'frontend' || params.DEPLOY_TARGET == 'both') {
-                        sh """
-                        scp -i $SSH_KEY frontend/${FRONT_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@${TARGET_SERVER} \"
-                          docker pull $ECR_URL:frontend-${DEPLOY_ENV}-${BUILD_TIME}
-                          docker stop mantal-map-frontend || true
-                          docker rm mantal-map-frontend || true
-                          docker run -d --name mantal-map-frontend --restart unless-stopped -p 8003:3000 --env-file /home/ubuntu/${FRONT_ENV_FILE} $ECR_URL:frontend-${DEPLOY_ENV}-${BUILD_TIME}
-                        \"
-                        """
-                    }
-
-                    if (params.DEPLOY_TARGET == 'backend' || params.DEPLOY_TARGET == 'both') {
-                        sh """
-                        scp -i $SSH_KEY backend/${BACK_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@${TARGET_SERVER} \"
-                          docker pull $ECR_URL:backend-${DEPLOY_ENV}-${BUILD_TIME}
-                          docker stop mantal-map-backend || true
-                          docker rm mantal-map-backend || true
-                          docker run -d --name mantal-map-backend --restart unless-stopped -p 8002:8000 \\
-                              --env ENVIRONMENT=${DEPLOY_ENV} \\
-                              --env-file /home/ubuntu/${BACK_ENV_FILE} \\
-                              $ECR_URL:backend-${DEPLOY_ENV}-${BUILD_TIME}
-                        \"
-                        """
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
-        }
-        failure {
-            echo '배포 실패!'
-        }
-    }
-}
+                        aws ecr get-login-password --region $AWS_REGION | docker login --userna_
