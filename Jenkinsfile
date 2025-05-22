@@ -7,7 +7,7 @@ pipeline {
         AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
         SSH_KEY = credentials('ssh-private-key')
-        ECR_REPO = 'hippotnc/mental-map-app'
+        ECR_REPO = 'hippotnc/mental-map-app'  
         ECR_URL = "794921296945.dkr.ecr.ap-northeast-2.amazonaws.com/${ECR_REPO}"
         BUILD_TIME = "${new Date().format('yyyyMMdd-HHmm', TimeZone.getTimeZone('Asia/Seoul'))}"
     }
@@ -31,8 +31,8 @@ data = json.load(open("env.json"))
 with open(".env.local", "w") as f:
     for k, v in data.items():
         f.write(f"{k}={v}\\n")'
+                        rm env.json
                         '''
-                        sh 'rm env.json'
                     }
                     sh """
                     docker build -t mantal-map-frontend:${BUILD_TIME} . && \
@@ -61,8 +61,8 @@ data = json.load(open("env.json"))
 with open(".env.${DEPLOY_ENV}", "w") as f:
     for k, v in data.items():
         f.write(f"{k}={v}\\n")'
+                            rm env.json
                             """
-                            sh 'rm env.json'
                         }
 
                         sh """
@@ -96,10 +96,10 @@ with open(".env.${DEPLOY_ENV}", "w") as f:
                         scp -i $SSH_KEY frontend/${FRONT_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
                         ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@${TARGET_SERVER} "\
                           docker pull $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME} && \
-                          (docker stop mantal-map-frontend || true) && \
-                          (docker rm mantal-map-frontend || true) && \
-                          docker run -d --name mantal-map-frontend --restart unless-stopped -p 8003:3000 --env-file /home/ubuntu/${FRONT_ENV_FILE} $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}
-                        "
+                          docker stop mantal-map-frontend || true && \
+                          docker rm mantal-map-frontend || true && \
+                          docker run -d --name mantal-map-frontend --restart unless-stopped -p 8003:3000 \
+                            --env-file /home/ubuntu/${FRONT_ENV_FILE} $ECR_URL:frontend-${params.DEPLOY_ENV}-${BUILD_TIME}"
                         """
                     }
 
@@ -108,13 +108,12 @@ with open(".env.${DEPLOY_ENV}", "w") as f:
                         scp -i $SSH_KEY backend/${BACK_ENV_FILE} ubuntu@${TARGET_SERVER}:/home/ubuntu/ && \
                         ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@${TARGET_SERVER} "\
                           docker pull $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME} && \
-                          (docker stop mantal-map-backend || true) && \
-                          (docker rm mantal-map-backend || true) && \
-                          docker run -d --name mantal-map-backend --restart unless-stopped -p 8002:8000 \\
-                            --env ENVIRONMENT=${params.DEPLOY_ENV} \\
-                            --env-file /home/ubuntu/${BACK_ENV_FILE} \\
-                            $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME}
-                        "
+                          docker stop mantal-map-backend || true && \
+                          docker rm mantal-map-backend || true && \
+                          docker run -d --name mantal-map-backend --restart unless-stopped -p 8002:8000 \
+                            --env ENVIRONMENT=${params.DEPLOY_ENV} \
+                            --env-file /home/ubuntu/${BACK_ENV_FILE} \
+                            $ECR_URL:backend-${params.DEPLOY_ENV}-${BUILD_TIME}"
                         """
                     }
                 }
