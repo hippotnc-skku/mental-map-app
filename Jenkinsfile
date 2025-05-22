@@ -24,7 +24,9 @@ pipeline {
                 dir("frontend") {
                     withCredentials([string(credentialsId: 'mental-map-frontend-env-vars', variable: 'ENV_VARS_JSON')]) {
                         sh '''
-                        echo "$ENV_VARS_JSON" > env.json
+                        cat > env.json <<EOF
+                        $ENV_VARS_JSON
+                        EOF
                         python3 -c '
 import json
 data = json.load(open("env.json"))
@@ -51,8 +53,10 @@ with open(".env.local", "w") as f:
                     script {
                         def backendEnvCredId = "mental-map-backend-env-${params.DEPLOY_ENV}-vars"
                         withCredentials([string(credentialsId: backendEnvCredId, variable: 'ENV_VARS_JSON')]) {
-                            sh """
-                            echo "$ENV_VARS_JSON" > env.json
+                            sh '''
+                            cat > env.json <<EOF
+                            $ENV_VARS_JSON
+                            EOF
                             python3 -c '
 import json
 data = json.load(open("env.json"))
@@ -60,7 +64,7 @@ with open(".env.${params.DEPLOY_ENV}", "w") as f:
     for k, v in data.items():
         f.write(f"{k}={v}\\n")'
                             rm env.json
-                            """
+                            '''
                         }
                     }
                     sh '''
